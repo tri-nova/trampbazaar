@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.LoginPage"
+             Title="Giris">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Giris Yap"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <Entry Placeholder="E-posta"
+                   Keyboard="Email"
+                   Text="{Binding Email}" />
+
+            <Entry Placeholder="Sifre"
+                   IsPassword="True"
+                   Text="{Binding Password}" />
+
+            <Button Text="Giris Yap"
+                    Clicked="OnLoginClicked" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

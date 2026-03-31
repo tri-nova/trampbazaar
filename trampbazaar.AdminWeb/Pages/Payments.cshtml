@@ -1,0 +1,62 @@
+@page
+@model trampbazaar.AdminWeb.Pages.PaymentsModel
+@{
+    ViewData["Title"] = "Odemeler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Odemeler</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+<section class="stats-grid compact-stats">
+    <article class="stat-card">
+        <span>Toplam tahsilat</span>
+        <strong>@Model.Dashboard.TotalPaidAmount.ToString("N2") TRY</strong>
+    </article>
+    <article class="stat-card">
+        <span>Odendi</span>
+        <strong>@Model.Dashboard.PaidCount</strong>
+    </article>
+    <article class="stat-card">
+        <span>Bekleyen</span>
+        <strong>@Model.Dashboard.PendingCount</strong>
+    </article>
+</section>
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Kullanici</th>
+                <th>Tip</th>
+                <th>Tutar</th>
+                <th>Paket</th>
+                <th>Ilan</th>
+                <th>Durum</th>
+                <th>Saglayici</th>
+                <th>Odeme tarihi</th>
+                <th>Kayit</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var payment in Model.Dashboard.Payments)
+        {
+            <tr>
+                <td>@payment.UserName</td>
+                <td>@payment.PaymentType</td>
+                <td>@payment.Amount.ToString("N2") @payment.CurrencyCode</td>
+                <td>@(string.IsNullOrWhiteSpace(payment.PackageName) ? "-" : payment.PackageName)</td>
+                <td>@(string.IsNullOrWhiteSpace(payment.ListingTitle) ? "-" : payment.ListingTitle)</td>
+                <td>@payment.PaymentStatus</td>
+                <td>@(string.IsNullOrWhiteSpace(payment.ProviderName) ? "-" : payment.ProviderName)</td>
+                <td>@(payment.PaidAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                <td>@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

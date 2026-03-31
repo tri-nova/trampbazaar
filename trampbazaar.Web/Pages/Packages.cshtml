@@ -1,0 +1,24 @@
+@page
+@model trampbazaar.Web.Pages.PackagesModel
+@{
+    ViewData["Title"] = "Paketler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Gelir Modelleri</p>
+        <h1>Paketler</h1>
+    </div>
+</section>
+
+<section class="listing-grid">
+@foreach (var package in Model.Packages)
+{
+    <article class="listing-card">
+        <span class="listing-meta">@package.PackageType</span>
+        <h2>@package.Name</h2>
+        <p>Sure: @(package.DurationDays?.ToString() ?? "-") gun, Kota: @(package.ListingQuota?.ToString() ?? "-")</p>
+        <strong>@package.Price.ToString("N0") @package.CurrencyCode</strong>
+    </article>
+}
+</section>

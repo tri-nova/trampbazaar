@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.AccountPage"
+             Title="Hesabim">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Hesabim"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <Border Padding="16"
+                    BackgroundColor="#F8FAFC"
+                    Stroke="#D9E2EC">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding UserName, StringFormat='Kullanici: {0}'}"
+                           FontFamily="OpenSansSemibold"
+                           FontSize="20" />
+                    <Label Text="{Binding StatusMessage}"
+                           TextColor="#486581" />
+                    <Label Text="{Binding UnreadNotificationCount, StringFormat='Okunmamis bildirim: {0}'}"
+                           TextColor="#7C3AED" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="Giris Yap"
+                    Clicked="OnLoginClicked" />
+
+            <Button Text="Kayit Ol"
+                    Clicked="OnRegisterClicked" />
+
+            <Button Text="Mesajlarim"
+                    Clicked="OnMessagesClicked" />
+
+            <Button Text="Bildirimlerim"
+                    Clicked="OnNotificationsClicked" />
+
+            <Button Text="Paketler"
+                    Clicked="OnPackagesClicked" />
+
+            <Button Text="Cikis Yap"
+                    Clicked="OnSignOutClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

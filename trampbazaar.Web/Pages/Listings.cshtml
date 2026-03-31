@@ -1,0 +1,42 @@
+@page
+@model trampbazaar.Web.Pages.ListingsModel
+@{
+    ViewData["Title"] = "Ilanlar";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Kesfet</p>
+        <h1>Ilanlar</h1>
+    </div>
+</section>
+
+<form method="get" class="filter-bar">
+    <select asp-for="Category">
+        <option value="">Tum kategoriler</option>
+        @foreach (var category in Model.Categories)
+        {
+            <option value="@category.Slug">@category.Name</option>
+        }
+    </select>
+    <select asp-for="SaleMode">
+        <option value="">Tum satis modlari</option>
+        @foreach (var saleMode in Model.SaleModes)
+        {
+            <option value="@saleMode.Key">@saleMode.Name</option>
+        }
+    </select>
+    <button type="submit" class="primary-link button-like">Filtrele</button>
+</form>
+
+<section class="listing-grid">
+@foreach (var listing in Model.Listings)
+{
+    <a class="listing-card" asp-page="/ListingDetail" asp-route-listingId="@listing.Id">
+        <span class="listing-meta">@listing.Category</span>
+        <h2>@listing.Title</h2>
+        <p>@listing.Description</p>
+        <strong>@listing.Price.ToString("N0") @listing.Currency</strong>
+    </a>
+}
+</section>

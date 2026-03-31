@@ -1,0 +1,32 @@
+@page "{listingId:guid}"
+@model trampbazaar.Web.Pages.ListingDetailModel
+@{
+    ViewData["Title"] = Model.Listing?.Title ?? "Ilan";
+}
+
+@if (Model.Listing is not null)
+{
+    <article class="detail-shell">
+        <span class="listing-meta">@Model.Listing.Category</span>
+        <h1>@Model.Listing.Title</h1>
+        <p class="detail-copy">@Model.Listing.Description</p>
+        <div class="detail-grid">
+            <div class="detail-card">
+                <span>Fiyat</span>
+                <strong>@Model.Listing.Price.ToString("N0") @Model.Listing.Currency</strong>
+            </div>
+            <div class="detail-card">
+                <span>Satici</span>
+                <strong>@Model.Listing.SellerName</strong>
+            </div>
+            <div class="detail-card">
+                <span>Mod</span>
+                <strong>@Model.Listing.SaleMode</strong>
+            </div>
+            <div class="detail-card">
+                <span>Durum</span>
+                <strong>@Model.Listing.Status</strong>
+            </div>
+        </div>
+    </article>
+}

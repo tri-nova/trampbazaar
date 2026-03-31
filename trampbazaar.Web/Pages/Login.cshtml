@@ -1,0 +1,25 @@
+@page
+@model trampbazaar.Web.Pages.LoginModel
+@{
+    ViewData["Title"] = "Giris";
+}
+
+<section class="auth-shell">
+    <p class="eyebrow">Hesabina don</p>
+    <h1>Giris Yap</h1>
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="flash-message">@Model.ErrorMessage</div>
+    }
+    <form method="post" class="stack-form">
+        <label>
+            E-posta
+            <input asp-for="Email" type="email" />
+        </label>
+        <label>
+            Sifre
+            <input asp-for="Password" type="password" />
+        </label>
+        <button type="submit" class="primary-link button-like">Giris Yap</button>
+    </form>
+</section>

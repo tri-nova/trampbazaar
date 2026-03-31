@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.MainPage"
+             Title="TrampBazaar">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24,20,32" Spacing="20">
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <Border Padding="24" StrokeThickness="0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#12355B" Offset="0.0" />
+                        <GradientStop Color="#1F7A8C" Offset="0.55" />
+                        <GradientStop Color="#BFDBF7" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                <VerticalStackLayout Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <VerticalStackLayout Grid.RowSpan="2" Spacing="6">
+                            <Label Text="{Binding Snapshot.HeroTitle}"
+                                   FontFamily="OpenSansSemibold"
+                                   FontSize="30"
+                                   TextColor="White"
+                                   LineBreakMode="WordWrap" />
+                            <Label Text="{Binding Snapshot.HeroSubtitle}"
+                                   FontSize="15"
+                                   TextColor="#E6F4F1" />
+                        </VerticalStackLayout>
+
+                        <Border Grid.Column="1"
+                                Padding="12,8"
+                                BackgroundColor="#FFFFFF33"
+                                StrokeThickness="0"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start">
+                            <Label Text="{Binding Snapshot.UserName, StringFormat='Hos geldin, {0}'}"
+                                   FontFamily="OpenSansSemibold"
+                                   TextColor="White" />
+                        </Border>
+                    </Grid>
+
+                    <SearchBar Placeholder="Urun ara, kategori tara, teklifleri filtrele"
+                               BackgroundColor="#F8FAFC"
+                               TextColor="#102A43"
+                               PlaceholderColor="#6B7280" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Text="Ilanlari Gor"
+                                BackgroundColor="#0F766E"
+                                Clicked="OnBrowseListingsClicked" />
+                        <Button Grid.Column="1"
+                                Text="Ilan Olustur"
+                                BackgroundColor="#7C3AED"
+                                Clicked="OnCreateListingClicked" />
+                    </Grid>
+
+                    <CollectionView ItemsSource="{Binding QuickStats}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="2" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,0,0,12"
+                                        Padding="14"
+                                        BackgroundColor="#FFFFFF1F"
+                                        StrokeThickness="0">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding Value}"
+                                               FontFamily="OpenSansSemibold"
+                                               FontSize="26"
+                                               TextColor="White" />
+                                        <Label Text="{Binding Label}"
+                                               FontSize="13"
+                                               TextColor="#D9F0EA" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Ortak akis"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="24" />
+                <CollectionView ItemsSource="{Binding SharedFlow}"
+                                SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border WidthRequest="180"
+                                    Padding="16"
+                                    BackgroundColor="#F8FAFC"
+                                    Stroke="#D9E2EC">
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="{Binding Title}"
+                                           FontFamily="OpenSansSemibold"
+                                           FontSize="16"
+                                           TextColor="#102A43" />
+                                    <Label Text="{Binding Caption}"
+                                           FontSize="13"
+                                           TextColor="#486581" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <Grid ColumnDefinitions="*,*"
+                  RowDefinitions="Auto,Auto"
+                  ColumnSpacing="16"
+                  RowSpacing="16">
+                <Border Grid.ColumnSpan="2"
+                        Padding="20"
+                        BackgroundColor="#FFF7E8"
+                        Stroke="#F7D070">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Satis turu secimi"
+                               FontFamily="OpenSansSemibold"
+                               FontSize="22"
+                               TextColor="#7C2D12" />
+                        <Label Text="Akis semasindaki dort ana senaryoyu tek ekranda deneyip sonraki sprintte gercek is kurallarina baglayabiliriz."
+                               FontSize="14"
+                               TextColor="#9A3412" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Grid.Row="1" Spacing="12">
+                    <Button Text="Direkt Satis"
+                            BackgroundColor="#2F855A"
+                            CommandParameter="direct"
+                            Clicked="OnSaleModeClicked" />
+                    <Button Text="Acik Artirma"
+                            BackgroundColor="#DD6B20"
+                            CommandParameter="auction"
+                            Clicked="OnSaleModeClicked" />
+                    <Button Text="Takas"
+                            BackgroundColor="#6B46C1"
+                            CommandParameter="trade"
+                            Clicked="OnSaleModeClicked" />
+                    <Button Text="Reklam ve Vitrin"
+                            BackgroundColor="#4A5568"
+                            CommandParameter="ad"
+                            Clicked="OnSaleModeClicked" />
+                </VerticalStackLayout>
+
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        Padding="20"
+                        BackgroundColor="#102A43"
+                        StrokeThickness="0">
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="{Binding SelectedSaleMode.Name}"
+                               FontFamily="OpenSansSemibold"
+                               FontSize="24"
+                               TextColor="White" />
+                        <Label Text="{Binding SelectedSaleMode.ShortDescription}"
+                               FontSize="14"
+                               TextColor="#D9E2EC" />
+
+                        <CollectionView ItemsSource="{Binding SelectedSaleModeSteps}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,10"
+                                            Padding="12"
+                                            BackgroundColor="#1F3A56"
+                                            Stroke="#36536B">
+                                        <Label Text="{Binding ., StringFormat='- {0}'}"
+                                               TextColor="#F0F4F8"
+                                               FontSize="14" />
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Vitrin ilanlar"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="24" />
+                <CollectionView ItemsSource="{Binding FeaturedProducts}"
+                                SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border WidthRequest="220"
+                                    Padding="18"
+                                    BackgroundColor="#F8FAFC"
+                                    Stroke="#D9E2EC">
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="{Binding Title}"
+                                           FontFamily="OpenSansSemibold"
+                                           FontSize="17"
+                                           TextColor="#102A43" />
+                                    <Label Text="{Binding Category}"
+                                           FontSize="13"
+                                           TextColor="#486581" />
+                                    <Label Text="{Binding PriceLabel}"
+                                           FontFamily="OpenSansSemibold"
+                                           FontSize="18"
+                                           TextColor="#1F7A8C" />
+                                    <Label Text="{Binding Status}"
+                                           FontSize="13"
+                                           TextColor="#7B8794" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Destekleyen moduller"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="24" />
+                <CollectionView ItemsSource="{Binding FeatureCards}"
+                                SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" Span="2" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,12"
+                                    Padding="16"
+                                    BackgroundColor="White"
+                                    Stroke="#D9E2EC">
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding Title}"
+                                           FontFamily="OpenSansSemibold"
+                                           FontSize="16"
+                                           TextColor="#102A43" />
+                                    <Label Text="{Binding Description}"
+                                           FontSize="13"
+                                           TextColor="#486581" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

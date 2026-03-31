@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.PackagesPage"
+             Title="Paketler">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Paketler"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <Label Text="Ilan, vitrin ve kurumsal uyelik paketleri."
+                   TextColor="#486581" />
+
+            <CollectionView ItemsSource="{Binding Packages}"
+                            SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="16"
+                                Margin="0,0,0,12"
+                                BackgroundColor="#F8FAFC"
+                                Stroke="#D9E2EC">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="{Binding Name}"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="18" />
+                                <Label Text="{Binding PackageType}"
+                                       TextColor="#7C3AED" />
+                                <Label Text="{Binding Price, StringFormat='{}{0:N2} TRY'}"
+                                       FontFamily="OpenSansSemibold" />
+                                <Label Text="{Binding DurationDays, StringFormat='Sure: {0} gun'}" />
+                                <Label Text="{Binding ListingQuota, StringFormat='Kota: {0}'}" />
+                                <Button Text="Satın Al"
+                                        CommandParameter="{Binding Id}"
+                                        Clicked="OnPurchaseClicked" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

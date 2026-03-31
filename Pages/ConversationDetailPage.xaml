@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.ConversationDetailPage"
+             Title="Konusma">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20,24">
+        <VerticalStackLayout Spacing="6">
+            <Label Text="{Binding Conversation.Title}"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="24" />
+            <Label Text="{Binding Conversation.CounterpartyUserName, StringFormat='Gorusulen: {0}'}"
+                   TextColor="#486581" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="1"
+                        Margin="0,20,0,20"
+                        ItemsSource="{Binding Messages}"
+                        SelectionMode="None"
+                        EmptyView="Bu konusmada henuz mesaj yok.">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="14"
+                            Margin="0,0,0,12"
+                            BackgroundColor="#F8FAFC"
+                            Stroke="#D9E2EC">
+                        <VerticalStackLayout Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding SenderUserName}"
+                                       FontFamily="OpenSansSemibold" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding CreatedAt, StringFormat='{}{0:dd.MM HH:mm}'}"
+                                       TextColor="#7B8794" />
+                            </Grid>
+                            <Label Text="{Binding MessageText}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <VerticalStackLayout Grid.Row="2" Spacing="10">
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <Editor Text="{Binding MessageForm.MessageText}"
+                    Placeholder="Mesajinizi yazin"
+                    AutoSize="TextChanges"
+                    HeightRequest="100"
+                    TextChanged="OnComposerTextChanged" />
+
+            <Button Text="Mesaj Gonder"
+                    IsEnabled="{Binding CanSendMessage}"
+                    Clicked="OnSendClicked" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

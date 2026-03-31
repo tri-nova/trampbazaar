@@ -1,0 +1,52 @@
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var adminUserName = HttpContextAccessor.HttpContext?.Session.GetString("AdminUserName");
+    var adminRoleName = HttpContextAccessor.HttpContext?.Session.GetString("AdminRoleName");
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TrampBazaar Admin</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/trampbazaar.AdminWeb.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <a class="brand" asp-page="/Index">TrampBazaar Admin</a>
+            @if (!string.IsNullOrWhiteSpace(adminUserName))
+            {
+                <div class="sidebar-user">
+                    <strong>@adminUserName</strong>
+                    <span>@adminRoleName</span>
+                </div>
+            }
+            <nav class="sidebar-nav">
+                <a asp-page="/Index">Dashboard</a>
+                <a asp-page="/Users">Kullanicilar</a>
+                <a asp-page="/Listings">Ilanlar</a>
+                <a asp-page="/Categories">Kategoriler</a>
+                <a asp-page="/Packages">Paketler</a>
+                <a asp-page="/Payments">Odemeler</a>
+                <a asp-page="/Complaints">Sikayetler</a>
+                <a asp-page="/Conversations">Konusmalar</a>
+                <a asp-page="/Notifications">Bildirimler</a>
+            </nav>
+            @if (!string.IsNullOrWhiteSpace(adminUserName))
+            {
+                <form method="post" asp-page="/Logout" class="logout-form">
+                    <button type="submit" class="logout-button">Cikis Yap</button>
+                </form>
+            }
+        </aside>
+        <main class="content">
+            @RenderBody()
+        </main>
+    </div>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

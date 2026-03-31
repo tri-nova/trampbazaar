@@ -1,0 +1,33 @@
+@page
+@model trampbazaar.Web.Pages.RegisterModel
+@{
+    ViewData["Title"] = "Kayit";
+}
+
+<section class="auth-shell">
+    <p class="eyebrow">Yeni hesap</p>
+    <h1>Kayit Ol</h1>
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="flash-message">@Model.ErrorMessage</div>
+    }
+    <form method="post" class="stack-form">
+        <label>
+            Ad soyad
+            <input asp-for="FullName" />
+        </label>
+        <label>
+            Kullanici adi
+            <input asp-for="UserName" />
+        </label>
+        <label>
+            E-posta
+            <input asp-for="Email" type="email" />
+        </label>
+        <label>
+            Sifre
+            <input asp-for="Password" type="password" />
+        </label>
+        <button type="submit" class="primary-link button-like">Kayit Ol</button>
+    </form>
+</section>

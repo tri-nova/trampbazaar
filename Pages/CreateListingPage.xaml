@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.CreateListingPage"
+             Title="Ilan Olustur">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Yeni ilan olustur"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <Border Padding="14"
+                    BackgroundColor="#ECFDF3"
+                    Stroke="#86EFAC"
+                    IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding StatusMessage}"
+                       TextColor="#166534" />
+            </Border>
+
+            <Entry Placeholder="Baslik"
+                   Text="{Binding Form.Title}" />
+
+            <Editor Placeholder="Aciklama"
+                    AutoSize="TextChanges"
+                    Text="{Binding Form.Description}" />
+
+            <Entry Placeholder="Satici adi"
+                   Text="{Binding Form.SellerName}" />
+
+            <Picker x:Name="CategoryPicker"
+                    Title="Kategori"
+                    ItemDisplayBinding="{Binding Name}"
+                    ItemsSource="{Binding Categories}"
+                    SelectedIndexChanged="OnCategoryChanged" />
+
+            <Picker x:Name="SaleModePicker"
+                    Title="Satis modu"
+                    ItemDisplayBinding="{Binding Name}"
+                    ItemsSource="{Binding SaleModes}"
+                    SelectedIndexChanged="OnSaleModeChanged" />
+
+            <Entry Placeholder="Fiyat"
+                   Keyboard="Numeric"
+                   Text="{Binding Form.Price}" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF7ED"
+                    Stroke="#FDBA74"
+                    IsVisible="{Binding IsAuctionMode}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Acik Artirma Kurallari"
+                           FontFamily="OpenSansSemibold"
+                           FontSize="18" />
+
+                    <Entry Placeholder="Baslangic fiyati"
+                           Keyboard="Numeric"
+                           Text="{Binding Form.AuctionStartPrice}" />
+
+                    <Entry Placeholder="Minimum artirim"
+                           Keyboard="Numeric"
+                           Text="{Binding Form.AuctionMinBidIncrement}" />
+
+                    <Grid ColumnDefinitions="*,*"
+                          ColumnSpacing="12">
+                        <DatePicker Date="{Binding Form.AuctionStartDate}" />
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding Form.AuctionStartTime}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*"
+                          ColumnSpacing="12">
+                        <DatePicker Date="{Binding Form.AuctionEndDate}" />
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding Form.AuctionEndTime}" />
+                    </Grid>
+
+                    <Entry Placeholder="Son dakika uzatma (dk)"
+                           Keyboard="Numeric"
+                           Text="{Binding Form.AuctionAutoExtendMinutes}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="Ilani Kaydet"
+                    Clicked="OnSaveClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

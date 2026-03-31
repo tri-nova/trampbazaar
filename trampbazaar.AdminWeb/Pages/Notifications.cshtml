@@ -1,0 +1,39 @@
+@page
+@model trampbazaar.AdminWeb.Pages.NotificationsModel
+@{
+    ViewData["Title"] = "Bildirimler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Son Bildirimler</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Tur</th>
+                <th>Baslik</th>
+                <th>Icerik</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var notification in Model.Notifications)
+        {
+            <tr>
+                <td>@notification.NotificationType</td>
+                <td>@notification.Title</td>
+                <td>@notification.Body</td>
+                <td>@(notification.IsRead ? "Okundu" : "Bekliyor")</td>
+                <td>@notification.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

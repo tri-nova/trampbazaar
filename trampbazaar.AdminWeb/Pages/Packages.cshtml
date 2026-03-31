@@ -1,0 +1,104 @@
+@page
+@model trampbazaar.AdminWeb.Pages.PackagesModel
+@{
+    ViewData["Title"] = "Paketler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Paketler</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="flash-message">@Model.StatusMessage</div>
+}
+
+<section class="table-shell form-shell">
+    <form method="post" asp-page-handler="Create" class="package-create-grid">
+        <h2>Yeni paket</h2>
+        <label>
+            Paket tipi
+            <select asp-for="PackageType" asp-items="Model.PackageTypeOptions"></select>
+        </label>
+        <label>
+            Paket adi
+            <input asp-for="Name" />
+        </label>
+        <label>
+            Fiyat
+            <input asp-for="Price" type="number" step="0.01" />
+        </label>
+        <label>
+            Sure gun
+            <input asp-for="DurationDays" type="number" />
+        </label>
+        <label>
+            Ilan kotasi
+            <input asp-for="ListingQuota" type="number" />
+        </label>
+        <button type="submit" class="table-action">Paket Ekle</button>
+    </form>
+</section>
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Tip</th>
+                <th>Ad</th>
+                <th>Fiyat</th>
+                <th>Sure</th>
+                <th>Kota</th>
+                <th>Durum</th>
+                <th>Kayit</th>
+                <th>Duzenle</th>
+                <th>Moderasyon</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var package in Model.Packages)
+        {
+            <tr>
+                <td>
+                    <form method="post" asp-page-handler="Update" id="form-@package.Id" class="category-row-form">
+                        <input type="hidden" name="packageId" value="@package.Id" />
+                    </form>
+                    <select name="packageType" form="form-@package.Id">
+                        @foreach (var option in Model.PackageTypeOptions)
+                        {
+                            if (string.Equals(option.Value, package.PackageType, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@option.Value" selected>@option.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        }
+                    </select>
+                </td>
+                <td><input type="text" name="name" value="@package.Name" form="form-@package.Id" /></td>
+                <td><input type="number" name="price" value="@package.Price" step="0.01" form="form-@package.Id" /></td>
+                <td><input type="number" name="durationDays" value="@package.DurationDays" form="form-@package.Id" class="sort-input" /></td>
+                <td><input type="number" name="listingQuota" value="@package.ListingQuota" form="form-@package.Id" class="sort-input" /></td>
+                <td>@(package.IsActive ? "Aktif" : "Pasif")</td>
+                <td>@package.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                <td><button type="submit" class="table-action" form="form-@package.Id">Kaydet</button></td>
+                <td>
+                    <form method="post" asp-page-handler="ToggleStatus" class="inline-form">
+                        <input type="hidden" name="packageId" value="@package.Id" />
+                        <input type="hidden" name="nextIsActive" value="@((!package.IsActive).ToString().ToLowerInvariant())" />
+                        <button type="submit" class="table-action">
+                            @(package.IsActive ? "Pasife Al" : "Aktif Et")
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

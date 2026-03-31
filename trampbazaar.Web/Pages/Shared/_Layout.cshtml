@@ -1,0 +1,40 @@
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var userName = HttpContextAccessor.HttpContext?.Session.GetString("UserName");
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TrampBazaar</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/trampbazaar.Web.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" asp-page="/Index">TrampBazaar</a>
+        <nav class="topnav">
+            <a asp-page="/Listings">Ilanlar</a>
+            <a asp-page="/Packages">Paketler</a>
+            <a asp-page="/CreateListing">Ilan Ver</a>
+            @if (string.IsNullOrWhiteSpace(userName))
+            {
+                <a asp-page="/Login">Giris</a>
+                <a asp-page="/Register">Kayit</a>
+            }
+            else
+            {
+                <span class="nav-user">@userName</span>
+                <form method="post" asp-page="/Logout" class="inline-nav-form">
+                    <button type="submit" class="nav-button">Cikis</button>
+                </form>
+            }
+        </nav>
+    </header>
+    <main class="page-shell">
+        @RenderBody()
+    </main>
+</body>
+</html>

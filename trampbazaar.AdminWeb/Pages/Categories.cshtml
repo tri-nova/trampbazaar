@@ -1,0 +1,107 @@
+@page
+@model trampbazaar.AdminWeb.Pages.CategoriesModel
+@{
+    ViewData["Title"] = "Kategoriler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Kategoriler</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="flash-message">@Model.StatusMessage</div>
+}
+
+<section class="table-shell form-shell">
+    <form method="post" asp-page-handler="Create" class="category-create-grid">
+        <h2>Yeni kategori</h2>
+        <label>
+            Ad
+            <input asp-for="Name" />
+        </label>
+        <label>
+            Slug
+            <input asp-for="Slug" />
+        </label>
+        <label>
+            Sira
+            <input asp-for="SortOrder" type="number" />
+        </label>
+        <label>
+            Ust kategori
+            <select asp-for="ParentCategoryId" asp-items="Model.ParentOptions"></select>
+        </label>
+        <button type="submit" class="table-action">Kategori Ekle</button>
+    </form>
+</section>
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Slug</th>
+                <th>Ust kategori</th>
+                <th>Sira</th>
+                <th>Durum</th>
+                <th>Kayit</th>
+                <th>Duzenle</th>
+                <th>Moderasyon</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var category in Model.Categories)
+        {
+            <tr>
+                <td>
+                    <form method="post" asp-page-handler="Update" id="form-@category.Id" class="category-row-form">
+                        <input type="hidden" name="categoryId" value="@category.Id" />
+                    </form>
+                    <input type="text" name="name" value="@category.Name" form="form-@category.Id" />
+                </td>
+                <td>
+                    <input type="text" name="slug" value="@category.Slug" form="form-@category.Id" />
+                </td>
+                <td>
+                    <select name="parentCategoryId" form="form-@category.Id">
+                        <option value="">Ana kategori</option>
+                        @foreach (var option in Model.ParentOptions.Where(x => !string.Equals(x.Value, category.Id.ToString(), StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.Value)))
+                        {
+                            if (string.Equals(option.Value, category.ParentCategoryId?.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@option.Value" selected>@option.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        }
+                    </select>
+                </td>
+                <td>
+                    <input type="number" name="sortOrder" value="@category.SortOrder" form="form-@category.Id" class="sort-input" />
+                </td>
+                <td>@(category.IsActive ? "Aktif" : "Pasif")</td>
+                <td>@category.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                <td>
+                    <button type="submit" class="table-action" form="form-@category.Id">Kaydet</button>
+                </td>
+                <td>
+                    <form method="post" asp-page-handler="ToggleStatus" class="inline-form">
+                        <input type="hidden" name="categoryId" value="@category.Id" />
+                        <input type="hidden" name="nextIsActive" value="@((!category.IsActive).ToString().ToLowerInvariant())" />
+                        <button type="submit" class="table-action">
+                            @(category.IsActive ? "Pasife Al" : "Aktif Et")
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

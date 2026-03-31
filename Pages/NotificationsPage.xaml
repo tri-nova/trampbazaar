@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.NotificationsPage"
+             Title="Bildirimler">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Bildirimler"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <CollectionView ItemsSource="{Binding Notifications}"
+                            SelectionMode="None"
+                            EmptyView="Henuz bildirim yok.">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="16"
+                                Margin="0,0,0,12"
+                                BackgroundColor="#F8FAFC"
+                                Stroke="#D9E2EC">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Title}"
+                                           FontFamily="OpenSansSemibold" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding CreatedAt, StringFormat='{}{0:dd.MM HH:mm}'}"
+                                           TextColor="#7B8794" />
+                                </Grid>
+                                <Label Text="{Binding Body}" />
+                                <Label Text="{Binding NotificationType}"
+                                       TextColor="#7C3AED" />
+                                <Grid ColumnDefinitions="*,*"
+                                      ColumnSpacing="10">
+                                    <Button Text="Ac"
+                                            CommandParameter="{Binding Id}"
+                                            Clicked="OnOpenNotificationClicked" />
+                                    <Button Grid.Column="1"
+                                            Text="Okundu Isaretle"
+                                            IsVisible="{Binding IsRead, Converter={StaticResource InverseBoolConverter}}"
+                                            CommandParameter="{Binding Id}"
+                                            Clicked="OnMarkReadClicked" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.ListingDetailPage"
+             x:Name="RootPage"
+             Title="Ilan Detayi">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <Label Text="{Binding Listing.Title}"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <Label Text="{Binding Listing.Description}"
+                   FontSize="15"
+                   TextColor="#486581" />
+
+            <Grid ColumnDefinitions="*,*"
+                  RowDefinitions="Auto,Auto"
+                  ColumnSpacing="16"
+                  RowSpacing="12">
+                <Border Padding="14"
+                        BackgroundColor="#F8FAFC"
+                        Stroke="#D9E2EC">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Kategori"
+                               FontFamily="OpenSansSemibold" />
+                        <Label Text="{Binding Listing.Category}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Padding="14"
+                        BackgroundColor="#F8FAFC"
+                        Stroke="#D9E2EC">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Fiyat"
+                               FontFamily="OpenSansSemibold" />
+                        <Label Text="{Binding Listing.Price, StringFormat='{}{0:N0} TL'}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Padding="14"
+                        BackgroundColor="#F8FAFC"
+                        Stroke="#D9E2EC">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Satici"
+                               FontFamily="OpenSansSemibold" />
+                        <Label Text="{Binding Listing.SellerName}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        Padding="14"
+                        BackgroundColor="#F8FAFC"
+                        Stroke="#D9E2EC">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Satis Modu"
+                               FontFamily="OpenSansSemibold" />
+                        <Label Text="{Binding SaleMode.Name}" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <Border Padding="16"
+                    BackgroundColor="#102A43"
+                    StrokeThickness="0">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding SaleMode.Description}"
+                           TextColor="White"
+                           FontFamily="OpenSansSemibold" />
+                    <CollectionView ItemsSource="{Binding SaleMode.Steps}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Label Text="{Binding ., StringFormat='- {0}'}"
+                                       TextColor="#D9E2EC" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16"
+                    BackgroundColor="#F8FAFC"
+                    Stroke="#D9E2EC"
+                    IsVisible="{Binding IsAuctionListing, Converter={StaticResource InverseBoolConverter}}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Teklif Ver"
+                           FontFamily="OpenSansSemibold"
+                           FontSize="18" />
+
+                    <Label Text="Bu ilan icin kendi fiyat teklifinizi iletin."
+                           TextColor="#486581" />
+
+                    <Entry Text="{Binding OfferForm.OfferedPrice}"
+                           Placeholder="Teklif tutari"
+                           Keyboard="Numeric" />
+
+                    <Editor Text="{Binding OfferForm.OfferNote}"
+                            Placeholder="Teklif notu"
+                            AutoSize="TextChanges"
+                            HeightRequest="100" />
+
+                    <Button Text="Teklif Gonder"
+                            IsEnabled="{Binding CanSubmitOffer}"
+                            Clicked="OnSubmitOfferClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16"
+                    BackgroundColor="#FFF7ED"
+                    Stroke="#FDBA74"
+                    IsVisible="{Binding IsAuctionListing}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Acik Artirma"
+                           FontFamily="OpenSansSemibold"
+                           FontSize="18" />
+
+                    <Grid ColumnDefinitions="*,*"
+                          RowDefinitions="Auto,Auto"
+                          ColumnSpacing="12"
+                          RowSpacing="10">
+                        <Label Text="{Binding Auction.StartPrice, StringFormat='Baslangic: {0:N0} TL'}" />
+                        <Label Grid.Column="1"
+                               Text="{Binding Auction.MinBidIncrement, StringFormat='Min. artirim: {0:N0} TL'}" />
+                        <Label Grid.Row="1"
+                               Text="{Binding Auction.CurrentBidAmount, StringFormat='Guncel teklif: {0:N0} TL'}" />
+                        <Label Grid.Row="1"
+                               Grid.Column="1"
+                               Text="{Binding Auction.CurrentWinnerUserName, StringFormat='Lider: {0}'}" />
+                    </Grid>
+
+                    <Label Text="{Binding Auction.EndsAt, StringFormat='Bitis: {0:dd.MM.yyyy HH:mm}'}"
+                           TextColor="#9A3412" />
+
+                    <Entry Text="{Binding AuctionBidForm.BidAmount}"
+                           Placeholder="Teklif tutari"
+                           Keyboard="Numeric" />
+
+                    <Button Text="Acik Artirmaya Teklif Ver"
+                            IsEnabled="{Binding CanSubmitAuctionBid}"
+                            Clicked="OnSubmitAuctionBidClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="12"
+                                 IsVisible="{Binding IsAuctionListing, Converter={StaticResource InverseBoolConverter}}">
+                <Label Text="Gelen Teklifler"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="18" />
+
+                <CollectionView ItemsSource="{Binding Offers}"
+                                SelectionMode="None"
+                                EmptyView="Henuz teklif yok.">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="14"
+                                    Margin="0,0,0,10"
+                                    BackgroundColor="#FFFFFF"
+                                    Stroke="#D9E2EC">
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding BuyerName}"
+                                               FontFamily="OpenSansSemibold" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding OfferedPrice, StringFormat='{}{0:N0} TL'}"
+                                               TextColor="#0F766E"
+                                               FontFamily="OpenSansSemibold" />
+                                    </Grid>
+                                    <Label Text="{Binding OfferNote}"
+                                           TextColor="#486581" />
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding Status}"
+                                               TextColor="#7C3AED" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}"
+                                               TextColor="#829AB1" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,*"
+                                          ColumnSpacing="10"
+                                          IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanManageOffers}">
+                                        <Button Text="Kabul Et"
+                                                CommandParameter="{Binding Id}"
+                                                Clicked="OnAcceptOfferClicked" />
+                                        <Button Grid.Column="1"
+                                                Text="Reddet"
+                                                CommandParameter="{Binding Id}"
+                                                Clicked="OnRejectOfferClicked" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="12"
+                                 IsVisible="{Binding IsAuctionListing}">
+                <Label Text="Acik Artirma Gecmisi"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="18" />
+
+                <CollectionView ItemsSource="{Binding AuctionBids}"
+                                SelectionMode="None"
+                                EmptyView="Henuz teklif yok.">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="14"
+                                    Margin="0,0,0,10"
+                                    BackgroundColor="#FFFFFF"
+                                    Stroke="#FED7AA">
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding BidderUserName}"
+                                               FontFamily="OpenSansSemibold" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding BidAmount, StringFormat='{}{0:N0} TL'}"
+                                               TextColor="#C2410C"
+                                               FontFamily="OpenSansSemibold" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding BidStatus}" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}"
+                                               TextColor="#829AB1" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <Button Text="Saticiya Mesaj Gonder"
+                    IsVisible="{Binding CanMessageSeller}"
+                    Clicked="OnMessageClicked" />
+
+            <Button Text="Ilani Sikayet Et"
+                    IsVisible="{Binding CanReportListing}"
+                    Clicked="OnReportClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

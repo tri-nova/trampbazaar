@@ -1,0 +1,39 @@
+@page
+@model trampbazaar.AdminWeb.Pages.ConversationsModel
+@{
+    ViewData["Title"] = "Konusmalar";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Konusmalar</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Baslik</th>
+                <th>Tip</th>
+                <th>Katilimcilar</th>
+                <th>Son mesaj</th>
+                <th>Son hareket</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var conversation in Model.Conversations)
+        {
+            <tr>
+                <td>@conversation.Title</td>
+                <td>@conversation.ConversationType</td>
+                <td>@conversation.CounterpartyUserName</td>
+                <td>@conversation.LastMessagePreview</td>
+                <td>@(conversation.LastMessageAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

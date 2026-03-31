@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.ComplaintPage"
+             Title="Sikayet">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Sikayet Olustur"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <Label Text="{Binding ListingTitle, StringFormat='Hedef: {0}'}"
+                   TextColor="#486581" />
+
+            <Entry Text="{Binding Form.Subject}"
+                   Placeholder="Sikayet konusu" />
+
+            <Editor Text="{Binding Form.Description}"
+                    Placeholder="Sikayet aciklamasi"
+                    AutoSize="TextChanges"
+                    HeightRequest="180" />
+
+            <Button Text="Sikayeti Gonder"
+                    Clicked="OnSubmitClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

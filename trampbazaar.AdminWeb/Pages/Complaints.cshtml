@@ -1,0 +1,71 @@
+@page
+@model trampbazaar.AdminWeb.Pages.ComplaintsModel
+@{
+    ViewData["Title"] = "Sikayetler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Sikayetler</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="flash-message">@Model.StatusMessage</div>
+}
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Raporlayan</th>
+                <th>Hedef</th>
+                <th>Konu</th>
+                <th>Aciklama</th>
+                <th>Durum</th>
+                <th>Atanan admin</th>
+                <th>Kayit</th>
+                <th>Guncelle</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var complaint in Model.Complaints)
+        {
+            <tr>
+                <td>@complaint.ReporterUserName</td>
+                <td>@complaint.TargetEntityType</td>
+                <td>@complaint.Subject</td>
+                <td class="wrap-cell">@complaint.Description</td>
+                <td>
+                    <form method="post" asp-page-handler="UpdateStatus" id="form-@complaint.Id" class="category-row-form">
+                        <input type="hidden" name="complaintId" value="@complaint.Id" />
+                    </form>
+                    <select name="status" form="form-@complaint.Id">
+                        @foreach (var option in Model.ComplaintStatusOptions)
+                        {
+                            if (string.Equals(option.Value, complaint.ComplaintStatus, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@option.Value" selected>@option.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        }
+                    </select>
+                </td>
+                <td>
+                    <input type="text" name="assignedAdminUserName" value="@complaint.AssignedAdminUserName" form="form-@complaint.Id" />
+                </td>
+                <td>@complaint.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                <td>
+                    <button type="submit" class="table-action" form="form-@complaint.Id">Kaydet</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

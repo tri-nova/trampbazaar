@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.ListingsPage"
+             Title="Ilanlar">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Ilanlar"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <Border Padding="16"
+                    BackgroundColor="#F8FAFC"
+                    Stroke="#D9E2EC">
+                <VerticalStackLayout Spacing="12">
+                    <Picker x:Name="CategoryPicker"
+                            Title="Kategori sec"
+                            ItemDisplayBinding="{Binding Name}"
+                            ItemsSource="{Binding Categories}"
+                            SelectedItem="{Binding SelectedCategory}" />
+
+                    <Picker x:Name="SaleModePicker"
+                            Title="Satis modu sec"
+                            ItemDisplayBinding="{Binding Name}"
+                            ItemsSource="{Binding SaleModes}"
+                            SelectedItem="{Binding SelectedSaleMode}" />
+
+                    <Button Text="Filtrele"
+                            Clicked="OnFilterClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusMessage}"
+                   IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                   TextColor="#486581" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <CollectionView ItemsSource="{Binding Listings}"
+                            SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,12"
+                                Padding="16"
+                                BackgroundColor="White"
+                                Stroke="#D9E2EC">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="{Binding Title}"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="18" />
+                                <Label Text="{Binding Description}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2"
+                                       TextColor="#486581" />
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                    <Label Text="{Binding Category}"
+                                           TextColor="#486581" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Price, StringFormat='{}{0:N0} TL'}"
+                                           FontFamily="OpenSansSemibold"
+                                           TextColor="#1F7A8C" />
+                                    <Label Grid.Row="1"
+                                           Text="{Binding SellerName, StringFormat='Satici: {0}'}"
+                                           TextColor="#7B8794" />
+                                    <Button Grid.Row="1"
+                                            Grid.Column="1"
+                                            Text="Detay"
+                                            Padding="10,6"
+                                            CommandParameter="{Binding Id}"
+                                            Clicked="OnViewDetailClicked" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

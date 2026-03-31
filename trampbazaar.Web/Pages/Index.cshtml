@@ -1,0 +1,39 @@
+@page
+@model trampbazaar.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "Ana Sayfa";
+}
+
+<section class="hero">
+    <div>
+        <p class="eyebrow">Yeni nesil pazar yeri</p>
+        <h1>Urun sat, acik artirma kur, takas ve teklif akisini tek yerde yonet.</h1>
+        <p class="hero-copy">TrampBazaar bireysel ve kurumsal kullanicilar icin ayni altyapi ustunde calisan hibrit pazar yeri deneyimi sunar.</p>
+        <div class="hero-actions">
+            <a class="primary-link" asp-page="/Listings">Ilanlari Kesfet</a>
+            <a class="secondary-link" asp-page="/Packages">Paketleri Incele</a>
+        </div>
+    </div>
+</section>
+
+<section class="stats-grid">
+@foreach (var stat in Model.Dashboard.QuickStats)
+{
+    <article class="stat-card">
+        <span>@stat.Label</span>
+        <strong>@stat.Value</strong>
+    </article>
+}
+</section>
+
+<section class="listing-grid">
+@foreach (var listing in Model.FeaturedListings)
+{
+    <a class="listing-card" asp-page="/ListingDetail" asp-route-listingId="@listing.Id">
+        <span class="listing-meta">@listing.Category</span>
+        <h2>@listing.Title</h2>
+        <p>@listing.Description</p>
+        <strong>@listing.Price.ToString("N0") @listing.Currency</strong>
+    </a>
+}
+</section>

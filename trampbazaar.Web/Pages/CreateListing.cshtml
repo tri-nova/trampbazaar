@@ -1,0 +1,47 @@
+@page
+@model trampbazaar.Web.Pages.CreateListingModel
+@{
+    ViewData["Title"] = "Ilan Ver";
+}
+
+<section class="auth-shell wide-shell">
+    <p class="eyebrow">Yeni ilan</p>
+    <h1>Ilan Ver</h1>
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="flash-message">@Model.ErrorMessage</div>
+    }
+    <form method="post" class="stack-form">
+        <label>
+            Baslik
+            <input asp-for="Title" />
+        </label>
+        <label>
+            Aciklama
+            <textarea asp-for="Description"></textarea>
+        </label>
+        <label>
+            Kategori
+            <select asp-for="CategorySlug">
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.Slug">@category.Name</option>
+                }
+            </select>
+        </label>
+        <label>
+            Satis modu
+            <select asp-for="SaleModeKey">
+                @foreach (var mode in Model.SaleModes)
+                {
+                    <option value="@mode.Key">@mode.Name</option>
+                }
+            </select>
+        </label>
+        <label>
+            Fiyat
+            <input asp-for="Price" type="number" step="0.01" />
+        </label>
+        <button type="submit" class="primary-link button-like">Ilan Olustur</button>
+    </form>
+</section>

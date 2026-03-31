@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="trampbazaar.Pages.ConversationsPage"
+             Title="Mesajlar">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20,24" Spacing="16">
+            <Label Text="Mesajlar"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="28" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}" />
+
+            <Border Padding="14"
+                    BackgroundColor="#FFF1F2"
+                    Stroke="#FECDD3"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#9F1239" />
+            </Border>
+
+            <CollectionView ItemsSource="{Binding Conversations}"
+                            SelectionMode="None"
+                            EmptyView="Henuz mesajlasma yok.">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="16"
+                                Margin="0,0,0,12"
+                                BackgroundColor="#F8FAFC"
+                                Stroke="#D9E2EC">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Title}"
+                                           FontFamily="OpenSansSemibold"
+                                           FontSize="18" />
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         Spacing="4"
+                                                         HorizontalOptions="End">
+                                        <Label Text="{Binding LastMessageAt, StringFormat='{}{0:dd.MM HH:mm}'}"
+                                               TextColor="#7B8794"
+                                               HorizontalTextAlignment="End" />
+                                        <Label Text="{Binding UnreadCount, StringFormat='{0} yeni'}"
+                                               TextColor="#7C3AED"
+                                               HorizontalTextAlignment="End"
+                                               IsVisible="{Binding UnreadCount, Converter={StaticResource InverseZeroToBoolConverter}}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <Label Text="{Binding CounterpartyUserName, StringFormat='Gorusulen: {0}'}"
+                                       TextColor="#486581" />
+
+                                <Label Text="{Binding LastMessagePreview}"
+                                       TextColor="#102A43"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2" />
+
+                                <Button Text="Konusmayi Ac"
+                                        CommandParameter="{Binding Id}"
+                                        Clicked="OnOpenConversationClicked" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

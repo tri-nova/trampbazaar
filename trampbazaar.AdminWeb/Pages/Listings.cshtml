@@ -1,0 +1,60 @@
+@page
+@model trampbazaar.AdminWeb.Pages.ListingsModel
+@{
+    ViewData["Title"] = "Ilanlar";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Ilanlar</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="flash-message">@Model.StatusMessage</div>
+}
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Baslik</th>
+                <th>Satici</th>
+                <th>Kategori</th>
+                <th>Satis modu</th>
+                <th>Fiyat</th>
+                <th>Durum</th>
+                <th>Vitrin</th>
+                <th>Goruntulenme</th>
+                <th>Moderasyon</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var listing in Model.Listings)
+        {
+            <tr>
+                <td>@listing.Title</td>
+                <td>@listing.SellerUserName</td>
+                <td>@listing.Category</td>
+                <td>@listing.SaleMode</td>
+                <td>@listing.Price.ToString("N0") @listing.Currency</td>
+                <td>@listing.Status</td>
+                <td>@(listing.IsFeatured ? "Evet" : "Hayir")</td>
+                <td>@listing.ViewCount</td>
+                <td>
+                    <form method="post" asp-page-handler="ToggleStatus" class="inline-form">
+                        <input type="hidden" name="listingId" value="@listing.Id" />
+                        <input type="hidden" name="nextStatus" value="@(listing.Status == "published" ? "paused" : "published")" />
+                        <button type="submit" class="table-action">
+                            @(listing.Status == "published" ? "Yayini Durdur" : "Yayina Al")
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

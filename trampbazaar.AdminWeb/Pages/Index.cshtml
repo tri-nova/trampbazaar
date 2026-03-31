@@ -1,0 +1,48 @@
+@page
+@model trampbazaar.AdminWeb.Pages.IndexModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">TrampBazaar Admin</p>
+        <h1>Platform operasyonunu tek ekranda izle.</h1>
+        <p class="hero-copy">Bu ilk sürüm dashboard, kullanıcılar ve ilanlar ekranlarını canlı API üstünden besliyor. Sonraki turda moderasyon, kategori ve paket yönetimi eklenecek.</p>
+    </div>
+    <div class="hero-actions">
+        <a class="action-link" asp-page="/Users">Kullanicilar</a>
+        <a class="action-link" asp-page="/Listings">Ilanlar</a>
+    </div>
+</section>
+
+<section class="stats-grid">
+@foreach (var stat in Model.Overview.Highlights)
+{
+    <article class="stat-card">
+        <span>@stat.Label</span>
+        <strong>@stat.Value</strong>
+    </article>
+}
+</section>
+
+<section class="insight-grid">
+    <article class="insight-card">
+        <h2>Operasyon Ozeti</h2>
+        <ul class="clean-list">
+            <li>Aktif kullanici: @Model.Overview.ActiveUsers</li>
+            <li>Yayindaki ilan: @Model.Overview.PublishedListings</li>
+            <li>Acik konusma: @Model.Overview.OpenConversations</li>
+            <li>Okunmamis bildirim: @Model.Overview.UnreadNotifications</li>
+        </ul>
+    </article>
+    <article class="insight-card accent-card">
+        <h2>Siradaki Isler</h2>
+        <ul class="clean-list">
+            <li>Moderasyon akislari</li>
+            <li>Kategori ve paket yonetimi</li>
+            <li>Rol bazli admin girisi</li>
+            <li>Raporlama ekranlari</li>
+        </ul>
+    </article>
+</section>

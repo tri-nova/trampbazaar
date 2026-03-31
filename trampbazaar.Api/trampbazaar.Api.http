@@ -1,0 +1,33 @@
+@trampbazaar_Api_HostAddress = http://localhost:5055
+
+GET {{trampbazaar_Api_HostAddress}}/api/dashboard
+Accept: application/json
+
+###
+
+GET {{trampbazaar_Api_HostAddress}}/api/categories
+Accept: application/json
+
+###
+
+GET {{trampbazaar_Api_HostAddress}}/api/sale-modes
+Accept: application/json
+
+###
+
+GET {{trampbazaar_Api_HostAddress}}/api/listings
+Accept: application/json
+
+###
+
+POST {{trampbazaar_Api_HostAddress}}/api/listings
+Content-Type: application/json
+
+{
+  "title": "MacBook Air M2",
+  "description": "Temiz kullanildi, kutulu cihaz.",
+  "categorySlug": "elektronik",
+  "saleModeKey": "direct",
+  "price": 31500,
+  "sellerName": "Batu"
+}

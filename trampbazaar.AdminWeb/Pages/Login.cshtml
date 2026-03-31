@@ -1,0 +1,39 @@
+@page
+@model trampbazaar.AdminWeb.Pages.LoginModel
+@{
+    ViewData["Title"] = "Admin Giris";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TrampBazaar Admin</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <section class="auth-shell">
+        <p class="eyebrow">TrampBazaar Admin</p>
+        <h1>Yonetim paneli girisi</h1>
+        <p class="auth-copy">Sadece moderator, admin veya super admin rolu olan hesaplar giris yapabilir.</p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="flash-message">@Model.ErrorMessage</div>
+        }
+
+        <form method="post" class="stack-form">
+            <label>
+                E-posta
+                <input asp-for="Email" type="email" autocomplete="username" />
+            </label>
+            <label>
+                Sifre
+                <input asp-for="Password" type="password" autocomplete="current-password" />
+            </label>
+            <button type="submit" class="table-action">Giris Yap</button>
+        </form>
+    </section>
+</body>
+</html>

@@ -1,0 +1,56 @@
+@page
+@model trampbazaar.AdminWeb.Pages.UsersModel
+@{
+    ViewData["Title"] = "Kullanicilar";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Kullanicilar</h1>
+    </div>
+    <a class="action-link" asp-page="/Index">Dashboard</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="flash-message">@Model.StatusMessage</div>
+}
+
+<div class="table-shell">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Kullanici</th>
+                <th>E-posta</th>
+                <th>Tur</th>
+                <th>Durum</th>
+                <th>Ilan</th>
+                <th>Kayit</th>
+                <th>Moderasyon</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <td>@user.Email</td>
+                <td>@user.AccountType</td>
+                <td>@user.Status</td>
+                <td>@user.ListingCount</td>
+                <td>@user.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                <td>
+                    <form method="post" asp-page-handler="ToggleStatus" class="inline-form">
+                        <input type="hidden" name="userId" value="@user.Id" />
+                        <input type="hidden" name="nextStatus" value="@(user.Status == "active" ? "passive" : "active")" />
+                        <button type="submit" class="table-action">
+                            @(user.Status == "active" ? "Pasife Al" : "Aktif Et")
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
