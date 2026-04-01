@@ -10,6 +10,14 @@
         <span class="listing-meta">@Model.Listing.Category</span>
         <h1>@Model.Listing.Title</h1>
         <p class="detail-copy">@Model.Listing.Description</p>
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="flash-message flash-error">@Model.ErrorMessage</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+        {
+            <div class="flash-message flash-success">@Model.StatusMessage</div>
+        }
         <div class="detail-grid">
             <div class="detail-card">
                 <span>Fiyat</span>
@@ -21,12 +29,182 @@
             </div>
             <div class="detail-card">
                 <span>Mod</span>
-                <strong>@Model.Listing.SaleMode</strong>
+                <strong>@(Model.SaleMode?.Name ?? Model.Listing.SaleMode)</strong>
             </div>
             <div class="detail-card">
                 <span>Durum</span>
                 <strong>@Model.Listing.Status</strong>
             </div>
         </div>
+
+        @if (Model.SaleMode is not null)
+        {
+            <section class="detail-panel accent-panel">
+                <h2>@Model.SaleMode.Name</h2>
+                <p>@Model.SaleMode.Description</p>
+                @if (Model.SaleMode.Steps.Count > 0)
+                {
+                    <ul class="step-list">
+                        @foreach (var step in Model.SaleMode.Steps)
+                        {
+                            <li>@step</li>
+                        }
+                    </ul>
+                }
+            </section>
+        }
+
+        @if (!Model.IsAuthenticated)
+        {
+            <section class="detail-panel">
+                <p>Teklif vermek ve satici ile iletisime gecmek icin once giris yapin.</p>
+                <div class="hero-actions">
+                    <a class="primary-link" asp-page="/Login">Giris Yap</a>
+                    <a class="secondary-link" asp-page="/Register">Kayit Ol</a>
+                </div>
+            </section>
+        }
+
+        @if (!Model.IsAuctionListing)
+        {
+            @if (Model.CanSubmitOffer)
+            {
+                <section class="detail-panel">
+                    <h2>Teklif Ver</h2>
+                    <p>Bu ilan icin kendi fiyat teklifinizi iletin.</p>
+                    <form method="post" asp-page-handler="Offer" class="stack-form">
+                        <label>
+                            Teklif tutari
+                            <input asp-for="OfferedPrice" type="number" step="0.01" />
+                        </label>
+                        <label>
+                            Teklif notu
+                            <textarea asp-for="OfferNote"></textarea>
+                        </label>
+                        <button type="submit" class="primary-link button-like">Teklif Gonder</button>
+                    </form>
+                </section>
+            }
+
+            <section class="detail-panel">
+                <h2>Gelen Teklifler</h2>
+                @if (Model.Offers.Count == 0)
+                {
+                    <p class="muted-copy">Henuz teklif yok.</p>
+                }
+                else
+                {
+                    <div class="offer-list">
+                        @foreach (var offer in Model.Offers)
+                        {
+                            <article class="offer-card">
+                                <div class="offer-card-head">
+                                    <strong>@offer.BuyerName</strong>
+                                    <strong>@offer.OfferedPrice.ToString("N0") @offer.Currency</strong>
+                                </div>
+                                <p>@offer.OfferNote</p>
+                                <div class="offer-card-meta">
+                                    <span>@offer.Status</span>
+                                    <span>@offer.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                                </div>
+                                @if (Model.CanManageOffers)
+                                {
+                                    <div class="inline-actions">
+                                        <form method="post" asp-page-handler="OfferStatus">
+                                            <input type="hidden" name="offerId" value="@offer.Id" />
+                                            <input type="hidden" name="status" value="accepted" />
+                                            <button type="submit" class="primary-link button-like">Kabul Et</button>
+                                        </form>
+                                        <form method="post" asp-page-handler="OfferStatus">
+                                            <input type="hidden" name="offerId" value="@offer.Id" />
+                                            <input type="hidden" name="status" value="rejected" />
+                                            <button type="submit" class="secondary-link button-like">Reddet</button>
+                                        </form>
+                                    </div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+        else
+        {
+            <section class="detail-panel auction-panel">
+                <h2>Acik Artirma</h2>
+                @if (Model.Auction is not null)
+                {
+                    <div class="auction-grid">
+                        <div class="detail-card">
+                            <span>Baslangic</span>
+                            <strong>@Model.Auction.StartPrice.ToString("N0") @Model.Listing.Currency</strong>
+                        </div>
+                        <div class="detail-card">
+                            <span>Min. artirim</span>
+                            <strong>@Model.Auction.MinBidIncrement.ToString("N0") @Model.Listing.Currency</strong>
+                        </div>
+                        <div class="detail-card">
+                            <span>Guncel teklif</span>
+                            <strong>@((Model.Auction.CurrentBidAmount ?? 0).ToString("N0")) @Model.Listing.Currency</strong>
+                        </div>
+                        <div class="detail-card">
+                            <span>Lider</span>
+                            <strong>@(string.IsNullOrWhiteSpace(Model.Auction.CurrentWinnerUserName) ? "-" : Model.Auction.CurrentWinnerUserName)</strong>
+                        </div>
+                    </div>
+                    <p class="muted-copy">Bitis: @Model.Auction.EndsAt.ToString("dd.MM.yyyy HH:mm")</p>
+                }
+                @if (Model.CanSubmitAuctionBid)
+                {
+                    <form method="post" asp-page-handler="Bid" class="stack-form">
+                        <label>
+                            Teklif tutari
+                            <input asp-for="BidAmount" type="number" step="0.01" />
+                        </label>
+                        <button type="submit" class="primary-link button-like">Acik Artirmaya Katil</button>
+                    </form>
+                }
+            </section>
+
+            <section class="detail-panel">
+                <h2>Acik Artirma Gecmisi</h2>
+                @if (Model.AuctionBids.Count == 0)
+                {
+                    <p class="muted-copy">Henuz teklif yok.</p>
+                }
+                else
+                {
+                    <div class="offer-list">
+                        @foreach (var bid in Model.AuctionBids)
+                        {
+                            <article class="offer-card auction-bid-card">
+                                <div class="offer-card-head">
+                                    <strong>@bid.BidderUserName</strong>
+                                    <strong>@bid.BidAmount.ToString("N0") @Model.Listing.Currency</strong>
+                                </div>
+                                <div class="offer-card-meta">
+                                    <span>@bid.BidStatus</span>
+                                    <span>@bid.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+        @if (Model.CanMessageSeller)
+        {
+            <section class="detail-panel">
+                <h2>Satici ile Iletisim</h2>
+                <p>Bu ilan icin dogrudan satici ile yeni bir konusma baslatabilirsiniz.</p>
+                <div class="hero-actions">
+                    <form method="post" asp-page-handler="Message">
+                        <button type="submit" class="secondary-link button-like">Saticiya Mesaj Gonder</button>
+                    </form>
+                    <a class="secondary-link" asp-page="/Complaint" asp-route-targetEntityType="listing" asp-route-targetEntityId="@Model.Listing.Id">Ilani Sikayet Et</a>
+                </div>
+            </section>
+        }
     </article>
 }

@@ -1,0 +1,42 @@
+@page
+@model trampbazaar.Web.Pages.NotificationsModel
+@{
+    ViewData["Title"] = "Bildirimler";
+}
+
+<section class="page-header">
+    <p class="eyebrow">Takip</p>
+    <h1>Bildirimler</h1>
+</section>
+
+<section class="detail-panel">
+    @if (Model.Notifications.Count == 0)
+    {
+        <p class="muted-copy">Bildirim bulunmuyor.</p>
+    }
+    else
+    {
+        <div class="offer-list">
+            @foreach (var notification in Model.Notifications)
+            {
+                <article class="offer-card @(notification.IsRead ? string.Empty : "notification-unread")">
+                    <div class="offer-card-head">
+                        <strong>@notification.Title</strong>
+                        <span>@notification.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    <p>@notification.Body</p>
+                    <div class="inline-actions">
+                        <span>@notification.NotificationType</span>
+                        @if (!notification.IsRead)
+                        {
+                            <form method="post" asp-page-handler="Read">
+                                <input type="hidden" name="notificationId" value="@notification.Id" />
+                                <button type="submit" class="secondary-link button-like">Okundu Isaretle</button>
+                            </form>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>

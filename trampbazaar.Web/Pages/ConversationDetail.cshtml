@@ -1,0 +1,38 @@
+@page "{conversationId:guid}"
+@model trampbazaar.Web.Pages.ConversationDetailModel
+@{
+    ViewData["Title"] = Model.Conversation?.Title ?? "Konusma";
+}
+
+@if (Model.Conversation is not null)
+{
+    <section class="page-header">
+        <p class="eyebrow">Konusma</p>
+        <h1>@Model.Conversation.Title</h1>
+        <p class="muted-copy">@Model.Conversation.CounterpartyUserName ile mesajlasma</p>
+    </section>
+
+    <section class="detail-panel">
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="flash-message flash-error">@Model.ErrorMessage</div>
+        }
+        <div class="message-list">
+            @foreach (var message in Model.Conversation.Messages)
+            {
+                <article class="message-card @(message.IsMine ? "message-mine" : "message-other")">
+                    <strong>@message.SenderUserName</strong>
+                    <p>@message.MessageText</p>
+                    <span>@message.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                </article>
+            }
+        </div>
+        <form method="post" class="stack-form">
+            <label>
+                Yeni mesaj
+                <textarea asp-for="MessageText"></textarea>
+            </label>
+            <button type="submit" class="primary-link button-like">Mesaj Gonder</button>
+        </form>
+    </section>
+}

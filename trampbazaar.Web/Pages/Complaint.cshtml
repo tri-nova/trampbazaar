@@ -1,0 +1,28 @@
+@page
+@model trampbazaar.Web.Pages.ComplaintModel
+@{
+    ViewData["Title"] = "Sikayet";
+}
+
+<section class="auth-shell wide-shell">
+    <p class="eyebrow">Destek</p>
+    <h1>Sikayet Olustur</h1>
+    <p class="muted-copy">Hedef turu: @Model.TargetEntityType | Kayit: @Model.TargetEntityId</p>
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="flash-message flash-error">@Model.ErrorMessage</div>
+    }
+    <form method="post" class="stack-form">
+        <input asp-for="TargetEntityType" type="hidden" />
+        <input asp-for="TargetEntityId" type="hidden" />
+        <label>
+            Konu
+            <input asp-for="Subject" />
+        </label>
+        <label>
+            Aciklama
+            <textarea asp-for="Description"></textarea>
+        </label>
+        <button type="submit" class="primary-link button-like">Sikayet Gonder</button>
+    </form>
+</section>

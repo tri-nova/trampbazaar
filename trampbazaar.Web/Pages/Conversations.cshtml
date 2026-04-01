@@ -1,0 +1,36 @@
+@page
+@model trampbazaar.Web.Pages.ConversationsModel
+@{
+    ViewData["Title"] = "Konusmalar";
+}
+
+<section class="page-header">
+    <p class="eyebrow">Mesajlar</p>
+    <h1>Konusmalar</h1>
+</section>
+
+<section class="detail-panel">
+    @if (Model.Conversations.Count == 0)
+    {
+        <p class="muted-copy">Henuz bir konusma yok.</p>
+    }
+    else
+    {
+        <div class="offer-list">
+            @foreach (var conversation in Model.Conversations)
+            {
+                <a class="offer-card conversation-card" asp-page="/ConversationDetail" asp-route-conversationId="@conversation.Id">
+                    <div class="offer-card-head">
+                        <strong>@conversation.Title</strong>
+                        <span>@(conversation.LastMessageAt?.ToString("dd.MM.yyyy HH:mm") ?? "-")</span>
+                    </div>
+                    <p>@conversation.LastMessagePreview</p>
+                    <div class="offer-card-meta">
+                        <span>@conversation.CounterpartyUserName</span>
+                        <span>Okunmayan: @conversation.UnreadCount</span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</section>

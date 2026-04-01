@@ -31,7 +31,7 @@
         </label>
         <label>
             Satis modu
-            <select asp-for="SaleModeKey">
+            <select asp-for="SaleModeKey" data-sale-mode-select>
                 @foreach (var mode in Model.SaleModes)
                 {
                     <option value="@mode.Key">@mode.Name</option>
@@ -42,6 +42,58 @@
             Fiyat
             <input asp-for="Price" type="number" step="0.01" />
         </label>
+        <section class="auction-fields" data-auction-fields hidden="@(!Model.IsAuctionMode)">
+            <p class="form-hint">Asagidaki alanlar sadece acik artirma modu icin kullanilir.</p>
+            <label>
+                Baslangic fiyati
+                <input asp-for="AuctionStartPrice" type="number" step="0.01" />
+            </label>
+            <label>
+                Minimum artirim
+                <input asp-for="AuctionMinBidIncrement" type="number" step="0.01" />
+            </label>
+            <div class="inline-field-grid">
+                <label>
+                    Baslangic tarihi
+                    <input asp-for="AuctionStartDate" type="date" />
+                </label>
+                <label>
+                    Baslangic saati
+                    <input asp-for="AuctionStartTime" type="time" />
+                </label>
+            </div>
+            <div class="inline-field-grid">
+                <label>
+                    Bitis tarihi
+                    <input asp-for="AuctionEndDate" type="date" />
+                </label>
+                <label>
+                    Bitis saati
+                    <input asp-for="AuctionEndTime" type="time" />
+                </label>
+            </div>
+            <label>
+                Otomatik uzatma dakikasi
+                <input asp-for="AuctionAutoExtendMinutes" type="number" min="0" />
+            </label>
+        </section>
         <button type="submit" class="primary-link button-like">Ilan Olustur</button>
     </form>
 </section>
+
+<script>
+    (() => {
+        const select = document.querySelector("[data-sale-mode-select]");
+        const auctionFields = document.querySelector("[data-auction-fields]");
+        if (!select || !auctionFields) {
+            return;
+        }
+
+        const syncVisibility = () => {
+            auctionFields.hidden = select.value !== "auction";
+        };
+
+        select.addEventListener("change", syncVisibility);
+        syncVisibility();
+    })();
+</script>

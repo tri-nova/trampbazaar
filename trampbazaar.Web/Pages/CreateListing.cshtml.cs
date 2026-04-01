@@ -22,9 +22,31 @@ public sealed class CreateListingModel(MarketplaceWebApiClient apiClient) : Page
     [BindProperty]
     public decimal Price { get; set; }
 
+    [BindProperty]
+    public decimal? AuctionStartPrice { get; set; }
+
+    [BindProperty]
+    public decimal? AuctionMinBidIncrement { get; set; }
+
+    [BindProperty]
+    public DateTime? AuctionStartDate { get; set; }
+
+    [BindProperty]
+    public TimeSpan? AuctionStartTime { get; set; }
+
+    [BindProperty]
+    public DateTime? AuctionEndDate { get; set; }
+
+    [BindProperty]
+    public TimeSpan? AuctionEndTime { get; set; }
+
+    [BindProperty]
+    public int? AuctionAutoExtendMinutes { get; set; }
+
     public string? ErrorMessage { get; private set; }
     public IReadOnlyList<CategoryDto> Categories { get; private set; } = [];
     public IReadOnlyList<SaleModeDto> SaleModes { get; private set; } = [];
+    public bool IsAuctionMode => string.Equals(SaleModeKey, "auction", StringComparison.OrdinalIgnoreCase);
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -33,6 +55,7 @@ public sealed class CreateListingModel(MarketplaceWebApiClient apiClient) : Page
             return RedirectToPage("/Login");
         }
 
+        SetAuctionDefaults();
         await LoadLookupsAsync(cancellationToken);
         return Page();
     }
@@ -45,6 +68,41 @@ public sealed class CreateListingModel(MarketplaceWebApiClient apiClient) : Page
             return RedirectToPage("/Login");
         }
 
+        if (string.IsNullOrWhiteSpace(Title) ||
+            string.IsNullOrWhiteSpace(Description) ||
+            string.IsNullOrWhiteSpace(CategorySlug) ||
+            string.IsNullOrWhiteSpace(SaleModeKey))
+        {
+            ErrorMessage = "Tum zorunlu alanlari doldurun.";
+            await LoadLookupsAsync(cancellationToken);
+            return Page();
+        }
+
+        DateTimeOffset? auctionStartsAt = null;
+        DateTimeOffset? auctionEndsAt = null;
+
+        if (IsAuctionMode)
+        {
+            if (!AuctionStartPrice.HasValue || AuctionStartPrice <= 0 ||
+                !AuctionMinBidIncrement.HasValue || AuctionMinBidIncrement <= 0 ||
+                !AuctionStartDate.HasValue || !AuctionStartTime.HasValue ||
+                !AuctionEndDate.HasValue || !AuctionEndTime.HasValue)
+            {
+                ErrorMessage = "Acik artirma icin tum alanlar zorunludur.";
+                await LoadLookupsAsync(cancellationToken);
+                return Page();
+            }
+
+            auctionStartsAt = new DateTimeOffset(AuctionStartDate.Value.Date + AuctionStartTime.Value, TimeSpan.Zero);
+            auctionEndsAt = new DateTimeOffset(AuctionEndDate.Value.Date + AuctionEndTime.Value, TimeSpan.Zero);
+            if (auctionEndsAt <= auctionStartsAt)
+            {
+                ErrorMessage = "Acik artirma bitisi baslangictan sonra olmali.";
+                await LoadLookupsAsync(cancellationToken);
+                return Page();
+            }
+        }
+
         var listing = await apiClient.CreateListingAsync(new CreateListingRequest
         {
             Title = Title,
@@ -52,7 +110,12 @@ public sealed class CreateListingModel(MarketplaceWebApiClient apiClient) : Page
             CategorySlug = CategorySlug,
             SaleModeKey = SaleModeKey,
             Price = Price,
-            SellerName = userName
+            SellerName = userName,
+            AuctionStartPrice = IsAuctionMode ? AuctionStartPrice : null,
+            AuctionMinBidIncrement = IsAuctionMode ? AuctionMinBidIncrement : null,
+            AuctionStartsAt = auctionStartsAt,
+            AuctionEndsAt = auctionEndsAt,
+            AuctionAutoExtendMinutes = IsAuctionMode ? AuctionAutoExtendMinutes : null
         }, cancellationToken);
 
         if (listing is null)
@@ -69,5 +132,15 @@ public sealed class CreateListingModel(MarketplaceWebApiClient apiClient) : Page
     {
         Categories = await apiClient.GetCategoriesAsync(cancellationToken);
         SaleModes = await apiClient.GetSaleModesAsync(cancellationToken);
+    }
+
+    private void SetAuctionDefaults()
+    {
+        AuctionStartDate ??= DateTime.Today;
+        AuctionStartTime ??= new TimeSpan(9, 0, 0);
+        AuctionEndDate ??= DateTime.Today.AddDays(1);
+        AuctionEndTime ??= new TimeSpan(18, 0, 0);
+        AuctionMinBidIncrement ??= 1;
+        AuctionAutoExtendMinutes ??= 0;
     }
 }

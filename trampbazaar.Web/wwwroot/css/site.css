@@ -209,6 +209,11 @@ a {
   gap: 14px;
 }
 
+.form-hint,
+.muted-copy {
+  color: var(--muted);
+}
+
 .stack-form label {
   display: grid;
   gap: 8px;
@@ -236,6 +241,140 @@ a {
   padding: 28px;
 }
 
+.detail-panel {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.detail-panel h2 {
+  margin-top: 0;
+}
+
+.accent-panel {
+  background: linear-gradient(135deg, #132238 0%, #1e3a5f 100%);
+  color: white;
+}
+
+.accent-panel p,
+.accent-panel li {
+  color: #dbeafe;
+}
+
+.step-list {
+  margin: 16px 0 0;
+  padding-left: 18px;
+}
+
+.inline-field-grid,
+.inline-actions,
+.offer-card-head,
+.offer-card-meta,
+.auction-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.inline-field-grid,
+.auction-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inline-actions,
+.offer-card-head,
+.offer-card-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+}
+
+.inline-actions form {
+  margin: 0;
+}
+
+.offer-list {
+  display: grid;
+  gap: 14px;
+}
+
+.conversation-card {
+  display: block;
+}
+
+.offer-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.offer-card p {
+  color: var(--muted);
+}
+
+.auction-bid-card {
+  border-color: #fed7aa;
+  background: #fffaf3;
+}
+
+.notification-unread {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15);
+}
+
+.message-list {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.message-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+}
+
+.message-card p {
+  margin: 8px 0;
+}
+
+.message-card span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.message-mine {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.message-other {
+  background: #fff;
+}
+
+.auction-panel {
+  background: linear-gradient(180deg, #fff7ed 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.flash-message {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.flash-error {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #9f1239;
+}
+
+.flash-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #166534;
+}
+
 .detail-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -255,7 +394,12 @@ a {
 
   .stats-grid,
   .listing-grid,
-  .detail-grid {
+  .detail-grid,
+  .inline-field-grid,
+  .inline-actions,
+  .offer-card-head,
+  .offer-card-meta,
+  .auction-grid {
     grid-template-columns: 1fr;
   }
 }
