@@ -1,0 +1,110 @@
+@page
+@model trampbazaar.Web.Pages.AccountModel
+@{
+    ViewData["Title"] = "Hesabim";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Kullanici Alani</p>
+        <h1>Hesabim</h1>
+        <p class="muted-copy">Ilanlarinizi, bildirim yogunlugunu ve satin alma gecmisinizi tek yerde izleyin.</p>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <span>Kullanici</span>
+        <strong>@Model.Account.UserName</strong>
+    </article>
+    <article class="stat-card">
+        <span>Hesap Tipi</span>
+        <strong>@Model.Account.AccountType</strong>
+    </article>
+    <article class="stat-card">
+        <span>Aktif Ilan</span>
+        <strong>@Model.Account.ActiveListingCount / @Model.Account.ListingCount</strong>
+    </article>
+    <article class="stat-card">
+        <span>Okunmamis Bildirim</span>
+        <strong>@Model.Account.UnreadNotificationCount</strong>
+    </article>
+</section>
+
+<section class="detail-grid account-grid">
+    <article class="detail-card">
+        <span>Toplam Satin Alma</span>
+        <strong>@Model.Account.PaymentCount</strong>
+    </article>
+    <article class="detail-card">
+        <span>Toplam Odeme</span>
+        <strong>@Model.Account.TotalPaidAmount.ToString("N0") TRY</strong>
+    </article>
+    <article class="detail-card">
+        <span>Hizli Erisim</span>
+        <a class="secondary-link" asp-page="/CreateListing">Yeni Ilan Ver</a>
+    </article>
+    <article class="detail-card">
+        <span>Mesajlar</span>
+        <a class="secondary-link" asp-page="/Conversations">Konusmalara Git</a>
+    </article>
+</section>
+
+<section class="detail-panel">
+    <div class="panel-head">
+        <div>
+            <p class="eyebrow">Son Ilanlar</p>
+            <h2>Ilanlarim</h2>
+        </div>
+        <a class="secondary-link" asp-page="/CreateListing">Yeni Ilan</a>
+    </div>
+
+    @if (Model.Account.RecentListings.Count == 0)
+    {
+        <p class="muted-copy">Henuz size ait ilan bulunmuyor.</p>
+    }
+    else
+    {
+        <section class="listing-grid compact-grid">
+        @foreach (var listing in Model.Account.RecentListings)
+        {
+            <a class="listing-card" asp-page="/ListingDetail" asp-route-listingId="@listing.Id">
+                <span class="listing-meta">@listing.Category</span>
+                <h2>@listing.Title</h2>
+                <p>Durum: @listing.Status</p>
+                <strong>@listing.Price.ToString("N0") @listing.Currency</strong>
+            </a>
+        }
+        </section>
+    }
+</section>
+
+<section class="detail-panel">
+    <div class="panel-head">
+        <div>
+            <p class="eyebrow">Odeme Akisi</p>
+            <h2>Son Satin Almalar</h2>
+        </div>
+        <a class="secondary-link" asp-page="/Packages">Paketler</a>
+    </div>
+
+    @if (Model.Account.RecentPayments.Count == 0)
+    {
+        <p class="muted-copy">Henuz satin alma kaydi bulunmuyor.</p>
+    }
+    else
+    {
+        <div class="payment-list">
+        @foreach (var payment in Model.Account.RecentPayments)
+        {
+            <article class="detail-card payment-card">
+                <span>@payment.PackageName</span>
+                <strong>@payment.Amount.ToString("N0") @payment.CurrencyCode</strong>
+                <p>Tip: @payment.PaymentType</p>
+                <p>Durum: @payment.PaymentStatus</p>
+                <p class="muted-copy">@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+            </article>
+        }
+        </div>
+    }
+</section>

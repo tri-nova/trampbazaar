@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "trampbazaar.AdminWeb", "tra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "trampbazaar.Web", "trampbazaar.Web\trampbazaar.Web.csproj", "{DFDE1891-C1A2-4BF9-8825-0166766BE52C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "trampbazaar.Tests", "trampbazaar.Tests\trampbazaar.Tests.csproj", "{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{DFDE1891-C1A2-4BF9-8825-0166766BE52C}.Release|x64.Build.0 = Release|Any CPU
 		{DFDE1891-C1A2-4BF9-8825-0166766BE52C}.Release|x86.ActiveCfg = Release|Any CPU
 		{DFDE1891-C1A2-4BF9-8825-0166766BE52C}.Release|x86.Build.0 = Release|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Debug|x64.Build.0 = Debug|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Debug|x86.Build.0 = Debug|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Release|x64.ActiveCfg = Release|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Release|x64.Build.0 = Release|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Release|x86.ActiveCfg = Release|Any CPU
+		{F3C4AA4C-BBA2-4C20-BE33-16040AB18740}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

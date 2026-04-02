@@ -7,6 +7,7 @@ public static class ApiRoutes
     public const string SaleModes = "api/sale-modes";
     public const string Listings = "api/listings";
     public const string Packages = "api/packages";
+    public const string Account = "api/account";
     public const string Payments = "api/payments";
     public const string Conversations = "api/conversations";
     public const string Complaints = "api/complaints";

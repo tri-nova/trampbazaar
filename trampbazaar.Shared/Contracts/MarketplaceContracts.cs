@@ -201,6 +201,30 @@ public sealed class PaymentResultDto
     public string Message { get; set; } = string.Empty;
 }
 
+public sealed class UserPaymentDto
+{
+    public Guid Id { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public string PaymentStatus { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public string PackageName { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class UserAccountDashboardDto
+{
+    public string UserName { get; set; } = string.Empty;
+    public string AccountType { get; set; } = string.Empty;
+    public int ListingCount { get; set; }
+    public int ActiveListingCount { get; set; }
+    public int UnreadNotificationCount { get; set; }
+    public int PaymentCount { get; set; }
+    public decimal TotalPaidAmount { get; set; }
+    public IReadOnlyList<ListingDto> RecentListings { get; set; } = Array.Empty<ListingDto>();
+    public IReadOnlyList<UserPaymentDto> RecentPayments { get; set; } = Array.Empty<UserPaymentDto>();
+}
+
 public sealed class CreateComplaintRequest
 {
     public string UserName { get; set; } = string.Empty;
@@ -378,4 +402,5 @@ public sealed class AuthResponseDto
     public string Message { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string RoleName { get; set; } = string.Empty;
+    public string AccessToken { get; set; } = string.Empty;
 }

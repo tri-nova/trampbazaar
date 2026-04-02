@@ -35,6 +35,7 @@ public sealed class LoginModel(AdminApiClient apiClient) : PageModel
 
         HttpContext.Session.SetString("AdminUserName", result.UserName);
         HttpContext.Session.SetString("AdminRoleName", result.RoleName);
+        HttpContext.Session.SetString("AccessToken", result.AccessToken);
         return RedirectToPage("/Index");
     }
 }

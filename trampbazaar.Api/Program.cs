@@ -3,6 +3,8 @@ using trampbazaar.Api.Services;
 using trampbazaar.Shared.Api;
 using trampbazaar.Shared.Contracts;
 
+const string ApiAuthItemKey = "__ApiAuthToken";
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -12,6 +14,7 @@ builder.WebHost.UseUrls(builder.Configuration["Server:BaseUrl"] ?? "http://local
 
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<MarketplaceRepository>();
+builder.Services.AddSingleton<ApiTokenService>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -29,6 +32,33 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.Use(async (context, next) =>
+{
+    if (!ApiAuthorizationPolicy.RequiresAuthentication(context.Request.Path, context.Request.Method))
+    {
+        await next();
+        return;
+    }
+
+    var tokenService = context.RequestServices.GetRequiredService<ApiTokenService>();
+    if (!ApiAuthorizationPolicy.TryGetBearerToken(context.Request.Headers.Authorization, out var bearerToken) ||
+        !tokenService.TryValidateToken(bearerToken, out var authToken))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        await context.Response.WriteAsJsonAsync(new { error = "Gecerli oturum gerekli." });
+        return;
+    }
+
+    if (ApiAuthorizationPolicy.IsAdminRoute(context.Request.Path) && !authToken!.IsAdmin)
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new { error = "Admin yetkisi gerekli." });
+        return;
+    }
+
+    context.Items[ApiAuthItemKey] = authToken;
+    await next();
+});
 
 app.MapGet(ApiRoutes.Dashboard, async (MarketplaceRepository repository, CancellationToken cancellationToken) =>
     Results.Ok(await repository.GetDashboardAsync(cancellationToken)))
@@ -38,7 +68,7 @@ app.MapGet(ApiRoutes.AdminOverview, async (MarketplaceRepository repository, Can
     Results.Ok(await repository.GetAdminOverviewAsync(cancellationToken)))
     .WithName("GetAdminOverview");
 
-app.MapPost(ApiRoutes.AdminAuthLogin, async (LoginRequestDto request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost(ApiRoutes.AdminAuthLogin, async (LoginRequestDto request, MarketplaceRepository repository, ApiTokenService tokenService, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
     {
@@ -49,9 +79,13 @@ app.MapPost(ApiRoutes.AdminAuthLogin, async (LoginRequestDto request, Marketplac
     }
 
     var result = await repository.LoginAdminAsync(request, cancellationToken);
-    return result.IsSuccess
-        ? Results.Ok(result)
-        : Results.BadRequest(result);
+    if (!result.IsSuccess)
+    {
+        return Results.BadRequest(result);
+    }
+
+    result.AccessToken = tokenService.CreateToken(result.UserName, result.RoleName, isAdmin: true);
+    return Results.Ok(result);
 })
     .WithName("AdminLogin");
 
@@ -215,7 +249,7 @@ app.MapGet(ApiRoutes.AdminComplaints, async (MarketplaceRepository repository, C
     Results.Ok(await repository.GetAdminComplaintsAsync(cancellationToken)))
     .WithName("GetAdminComplaints");
 
-app.MapPost($"{ApiRoutes.AdminComplaints}/{{complaintId:guid}}/status", async (Guid complaintId, AdminComplaintStatusUpdateRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.AdminComplaints}/{{complaintId:guid}}/status", async (Guid complaintId, AdminComplaintStatusUpdateRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Status))
     {
@@ -227,6 +261,7 @@ app.MapPost($"{ApiRoutes.AdminComplaints}/{{complaintId:guid}}/status", async (G
 
     try
     {
+        request.AssignedAdminUserName = GetAuthenticatedUser(httpContext);
         var updated = await repository.UpdateAdminComplaintStatusAsync(complaintId, request, cancellationToken);
         return updated ? Results.Ok() : Results.NotFound();
     }
@@ -253,6 +288,13 @@ app.MapGet(ApiRoutes.Packages, async (MarketplaceRepository repository, Cancella
     Results.Ok(await repository.GetPackagesAsync(cancellationToken)))
     .WithName("GetPackages");
 
+app.MapGet(ApiRoutes.Account, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    var account = await repository.GetUserAccountDashboardAsync(GetAuthenticatedUser(httpContext), cancellationToken);
+    return account is null ? Results.NotFound() : Results.Ok(account);
+})
+    .WithName("GetAccount");
+
 app.MapGet(ApiRoutes.Listings, async (string? category, string? saleMode, MarketplaceRepository repository, CancellationToken cancellationToken) =>
     Results.Ok(await repository.GetListingsAsync(category, saleMode, cancellationToken)))
     .WithName("GetListings");
@@ -275,15 +317,9 @@ app.MapGet($"{ApiRoutes.Listings}/{{listingId:guid}}/auction/bids", async (Guid 
     Results.Ok(await repository.GetAuctionBidsByListingIdAsync(listingId, cancellationToken)))
     .WithName("GetListingAuctionBids");
 
-app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/auction/bids", async (Guid listingId, CreateAuctionBidRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/auction/bids", async (Guid listingId, CreateAuctionBidRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.BidderUserName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["bidderUserName"] = ["Teklif veren kullanici zorunludur."]
-        });
-    }
+    request.BidderUserName = GetAuthenticatedUser(httpContext);
 
     if (request.BidAmount <= 0)
     {
@@ -309,15 +345,9 @@ app.MapGet($"{ApiRoutes.Listings}/{{listingId:guid}}/offers", async (Guid listin
     Results.Ok(await repository.GetListingOffersAsync(listingId, cancellationToken)))
     .WithName("GetListingOffers");
 
-app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/offers", async (Guid listingId, CreateListingOfferRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/offers", async (Guid listingId, CreateListingOfferRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.BuyerName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["buyerName"] = ["Teklif veren kullanici zorunludur."]
-        });
-    }
+    request.BuyerName = GetAuthenticatedUser(httpContext);
 
     if (request.OfferedPrice <= 0)
     {
@@ -339,15 +369,9 @@ app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/offers", async (Guid listi
 })
     .WithName("CreateListingOffer");
 
-app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/offers/{{offerId:guid}}/status", async (Guid listingId, Guid offerId, UpdateListingOfferStatusRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/offers/{{offerId:guid}}/status", async (Guid listingId, Guid offerId, UpdateListingOfferStatusRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.ActorUserName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["actorUserName"] = ["Islemi yapan kullanici zorunludur."]
-        });
-    }
+    request.ActorUserName = GetAuthenticatedUser(httpContext);
 
     try
     {
@@ -361,15 +385,9 @@ app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/offers/{{offerId:guid}}/st
 })
     .WithName("UpdateListingOfferStatus");
 
-app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/conversations", async (Guid listingId, StartListingConversationRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/conversations", async (Guid listingId, StartListingConversationRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.UserName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["userName"] = ["Kullanici zorunludur."]
-        });
-    }
+    request.UserName = GetAuthenticatedUser(httpContext);
 
     try
     {
@@ -383,42 +401,28 @@ app.MapPost($"{ApiRoutes.Listings}/{{listingId:guid}}/conversations", async (Gui
 })
     .WithName("StartListingConversation");
 
-app.MapGet(ApiRoutes.Conversations, async (string userName, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapGet(ApiRoutes.Conversations, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(userName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["userName"] = ["Kullanici zorunludur."]
-        });
-    }
-
-    return Results.Ok(await repository.GetConversationsAsync(userName, cancellationToken));
+    return Results.Ok(await repository.GetConversationsAsync(GetAuthenticatedUser(httpContext), cancellationToken));
 })
     .WithName("GetConversations");
 
-app.MapGet($"{ApiRoutes.Conversations}/{{conversationId:guid}}", async (Guid conversationId, string userName, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapGet($"{ApiRoutes.Conversations}/{{conversationId:guid}}", async (Guid conversationId, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(userName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["userName"] = ["Kullanici zorunludur."]
-        });
-    }
-
-    var conversation = await repository.GetConversationByIdAsync(conversationId, userName, cancellationToken);
+    var conversation = await repository.GetConversationByIdAsync(conversationId, GetAuthenticatedUser(httpContext), cancellationToken);
     return conversation is null ? Results.NotFound() : Results.Ok(conversation);
 })
     .WithName("GetConversationById");
 
-app.MapPost($"{ApiRoutes.Conversations}/{{conversationId:guid}}/messages", async (Guid conversationId, SendMessageRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.Conversations}/{{conversationId:guid}}/messages", async (Guid conversationId, SendMessageRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.SenderUserName) || string.IsNullOrWhiteSpace(request.MessageText))
+    request.SenderUserName = GetAuthenticatedUser(httpContext);
+
+    if (string.IsNullOrWhiteSpace(request.MessageText))
     {
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
-            ["request"] = ["Gonderen ve mesaj metni zorunludur."]
+            ["request"] = ["Mesaj metni zorunludur."]
         });
     }
 
@@ -434,13 +438,15 @@ app.MapPost($"{ApiRoutes.Conversations}/{{conversationId:guid}}/messages", async
 })
     .WithName("SendMessage");
 
-app.MapPost(ApiRoutes.Payments, async (CreatePaymentRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost(ApiRoutes.Payments, async (CreatePaymentRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.UserName) || request.PackageId == Guid.Empty)
+    request.UserName = GetAuthenticatedUser(httpContext);
+
+    if (request.PackageId == Guid.Empty)
     {
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
-            ["request"] = ["Kullanici ve paket zorunludur."]
+            ["request"] = ["Paket zorunludur."]
         });
     }
 
@@ -455,10 +461,11 @@ app.MapPost(ApiRoutes.Payments, async (CreatePaymentRequest request, Marketplace
 })
     .WithName("CreatePayment");
 
-app.MapPost(ApiRoutes.Complaints, async (CreateComplaintRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost(ApiRoutes.Complaints, async (CreateComplaintRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.UserName) ||
-        string.IsNullOrWhiteSpace(request.TargetEntityType) ||
+    request.UserName = GetAuthenticatedUser(httpContext);
+
+    if (string.IsNullOrWhiteSpace(request.TargetEntityType) ||
         request.TargetEntityId == Guid.Empty ||
         string.IsNullOrWhiteSpace(request.Subject) ||
         string.IsNullOrWhiteSpace(request.Description))
@@ -480,42 +487,27 @@ app.MapPost(ApiRoutes.Complaints, async (CreateComplaintRequest request, Marketp
 })
     .WithName("CreateComplaint");
 
-app.MapGet(ApiRoutes.Notifications, async (string userName, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapGet(ApiRoutes.Notifications, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(userName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["userName"] = ["Kullanici zorunludur."]
-        });
-    }
-
-    return Results.Ok(await repository.GetNotificationsAsync(userName, cancellationToken));
+    return Results.Ok(await repository.GetNotificationsAsync(GetAuthenticatedUser(httpContext), cancellationToken));
 })
     .WithName("GetNotifications");
 
-app.MapPost($"{ApiRoutes.Notifications}/{{notificationId:guid}}/read", async (Guid notificationId, string userName, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost($"{ApiRoutes.Notifications}/{{notificationId:guid}}/read", async (Guid notificationId, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(userName))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["userName"] = ["Kullanici zorunludur."]
-        });
-    }
-
-    var updated = await repository.MarkNotificationReadAsync(notificationId, userName, cancellationToken);
+    var updated = await repository.MarkNotificationReadAsync(notificationId, GetAuthenticatedUser(httpContext), cancellationToken);
     return updated ? Results.Ok() : Results.NotFound();
 })
     .WithName("MarkNotificationRead");
 
-app.MapPost(ApiRoutes.Listings, async (CreateListingRequest request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost(ApiRoutes.Listings, async (CreateListingRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
+    request.SellerName = GetAuthenticatedUser(httpContext);
+
     if (string.IsNullOrWhiteSpace(request.Title) ||
         string.IsNullOrWhiteSpace(request.Description) ||
         string.IsNullOrWhiteSpace(request.CategorySlug) ||
-        string.IsNullOrWhiteSpace(request.SaleModeKey) ||
-        string.IsNullOrWhiteSpace(request.SellerName))
+        string.IsNullOrWhiteSpace(request.SaleModeKey))
     {
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
@@ -555,7 +547,7 @@ app.MapPost(ApiRoutes.Listings, async (CreateListingRequest request, Marketplace
 })
 .WithName("CreateListing");
 
-app.MapPost(ApiRoutes.AuthRegister, async (RegisterRequestDto request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost(ApiRoutes.AuthRegister, async (RegisterRequestDto request, MarketplaceRepository repository, ApiTokenService tokenService, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.FullName) ||
         string.IsNullOrWhiteSpace(request.UserName) ||
@@ -569,13 +561,17 @@ app.MapPost(ApiRoutes.AuthRegister, async (RegisterRequestDto request, Marketpla
     }
 
     var result = await repository.RegisterAsync(request, cancellationToken);
-    return result.IsSuccess
-        ? Results.Ok(result)
-        : Results.BadRequest(result);
+    if (!result.IsSuccess)
+    {
+        return Results.BadRequest(result);
+    }
+
+    result.AccessToken = tokenService.CreateToken(result.UserName, result.RoleName, isAdmin: false);
+    return Results.Ok(result);
 })
 .WithName("Register");
 
-app.MapPost(ApiRoutes.AuthLogin, async (LoginRequestDto request, MarketplaceRepository repository, CancellationToken cancellationToken) =>
+app.MapPost(ApiRoutes.AuthLogin, async (LoginRequestDto request, MarketplaceRepository repository, ApiTokenService tokenService, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
     {
@@ -586,10 +582,25 @@ app.MapPost(ApiRoutes.AuthLogin, async (LoginRequestDto request, MarketplaceRepo
     }
 
     var result = await repository.LoginAsync(request, cancellationToken);
-    return result.IsSuccess
-        ? Results.Ok(result)
-        : Results.BadRequest(result);
+    if (!result.IsSuccess)
+    {
+        return Results.BadRequest(result);
+    }
+
+    result.AccessToken = tokenService.CreateToken(result.UserName, result.RoleName, isAdmin: false);
+    return Results.Ok(result);
 })
 .WithName("Login");
 
 app.Run();
+
+static string GetAuthenticatedUser(HttpContext httpContext)
+{
+    if (httpContext.Items[ApiAuthItemKey] is ApiAuthTokenPayload authToken &&
+        !string.IsNullOrWhiteSpace(authToken.UserName))
+    {
+        return authToken.UserName;
+    }
+
+    throw new InvalidOperationException("Kimlik dogrulama bulunamadi.");
+}

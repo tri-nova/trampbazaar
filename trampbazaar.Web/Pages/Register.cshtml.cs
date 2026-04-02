@@ -42,6 +42,7 @@ public sealed class RegisterModel(MarketplaceWebApiClient apiClient) : PageModel
         }
 
         HttpContext.Session.SetString("UserName", result.UserName);
+        HttpContext.Session.SetString("AccessToken", result.AccessToken);
         return RedirectToPage("/Index");
     }
 }

@@ -936,6 +936,160 @@ public sealed class MarketplaceRepository
         return packages;
     }
 
+    public async Task<UserAccountDashboardDto?> GetUserAccountDashboardAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        const string summarySql = """
+            SELECT TOP 1
+                ISNULL(up.UserName, u.Email) AS UserName,
+                u.AccountType,
+                (
+                    SELECT COUNT(*)
+                    FROM dbo.Listings l
+                    WHERE l.SellerUserId = u.Id
+                ) AS ListingCount,
+                (
+                    SELECT COUNT(*)
+                    FROM dbo.Listings l
+                    WHERE l.SellerUserId = u.Id
+                      AND l.ListingStatus IN (N'published', N'active')
+                ) AS ActiveListingCount,
+                (
+                    SELECT COUNT(*)
+                    FROM dbo.Notifications n
+                    WHERE n.UserId = u.Id
+                      AND n.IsRead = 0
+                ) AS UnreadNotificationCount,
+                (
+                    SELECT COUNT(*)
+                    FROM dbo.Payments p
+                    WHERE p.UserId = u.Id
+                ) AS PaymentCount,
+                (
+                    SELECT ISNULL(SUM(CASE WHEN p.PaymentStatus = N'paid' THEN p.Amount ELSE 0 END), 0)
+                    FROM dbo.Payments p
+                    WHERE p.UserId = u.Id
+                ) AS TotalPaidAmount
+            FROM dbo.Users u
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            WHERE up.UserName = @UserName OR u.Email = @UserName;
+            """;
+
+        const string listingsSql = """
+            SELECT TOP 6
+                l.Id,
+                p.Title,
+                p.Description,
+                c.Name AS CategoryName,
+                sm.ModeKey,
+                l.Price,
+                l.CurrencyCode,
+                ISNULL(up.UserName, u.Email) AS SellerName,
+                l.ListingStatus,
+                l.CreatedAt
+            FROM dbo.Listings l
+            INNER JOIN dbo.Products p ON p.Id = l.ProductId
+            INNER JOIN dbo.Categories c ON c.Id = p.CategoryId
+            INNER JOIN dbo.SaleModes sm ON sm.Id = l.SaleModeId
+            INNER JOIN dbo.Users u ON u.Id = l.SellerUserId
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            WHERE up.UserName = @UserName OR u.Email = @UserName
+            ORDER BY l.CreatedAt DESC;
+            """;
+
+        const string paymentsSql = """
+            SELECT TOP 6
+                p.Id,
+                p.PaymentType,
+                p.PaymentStatus,
+                p.Amount,
+                p.CurrencyCode,
+                ISNULL(pkg.Name, N'') AS PackageName,
+                p.CreatedAt
+            FROM dbo.Payments p
+            INNER JOIN dbo.Users u ON u.Id = p.UserId
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            LEFT JOIN dbo.Packages pkg ON pkg.Id = p.PackageId
+            WHERE up.UserName = @UserName OR u.Email = @UserName
+            ORDER BY p.CreatedAt DESC;
+            """;
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        UserAccountDashboardDto? dashboard = null;
+
+        await using (var summaryCommand = new SqlCommand(summarySql, connection))
+        {
+            summaryCommand.Parameters.AddWithValue("@UserName", userName.Trim());
+            await using var reader = await summaryCommand.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                dashboard = new UserAccountDashboardDto
+                {
+                    UserName = reader.GetString(0),
+                    AccountType = reader.GetString(1),
+                    ListingCount = reader.GetInt32(2),
+                    ActiveListingCount = reader.GetInt32(3),
+                    UnreadNotificationCount = reader.GetInt32(4),
+                    PaymentCount = reader.GetInt32(5),
+                    TotalPaidAmount = reader.GetDecimal(6)
+                };
+            }
+        }
+
+        if (dashboard is null)
+        {
+            return null;
+        }
+
+        var listings = new List<ListingDto>();
+        await using (var listingsCommand = new SqlCommand(listingsSql, connection))
+        {
+            listingsCommand.Parameters.AddWithValue("@UserName", userName.Trim());
+            await using var reader = await listingsCommand.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                listings.Add(new ListingDto
+                {
+                    Id = reader.GetGuid(0),
+                    Title = reader.GetString(1),
+                    Description = reader.GetString(2),
+                    Category = reader.GetString(3),
+                    SaleMode = reader.GetString(4),
+                    Price = reader.GetDecimal(5),
+                    Currency = reader.GetString(6),
+                    SellerName = reader.GetString(7),
+                    Status = reader.GetString(8),
+                    CreatedAt = new DateTimeOffset(reader.GetDateTime(9), TimeSpan.Zero)
+                });
+            }
+        }
+
+        var payments = new List<UserPaymentDto>();
+        await using (var paymentsCommand = new SqlCommand(paymentsSql, connection))
+        {
+            paymentsCommand.Parameters.AddWithValue("@UserName", userName.Trim());
+            await using var reader = await paymentsCommand.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                payments.Add(new UserPaymentDto
+                {
+                    Id = reader.GetGuid(0),
+                    PaymentType = reader.GetString(1),
+                    PaymentStatus = reader.GetString(2),
+                    Amount = reader.GetDecimal(3),
+                    CurrencyCode = reader.GetString(4).Trim(),
+                    PackageName = reader.GetString(5),
+                    CreatedAt = new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero)
+                });
+            }
+        }
+
+        dashboard.RecentListings = listings;
+        dashboard.RecentPayments = payments;
+        return dashboard;
+    }
+
     public async Task<IReadOnlyList<ListingDto>> GetListingsAsync(string? categorySlug, string? saleModeKey, CancellationToken cancellationToken = default)
     {
         var sql = new StringBuilder("""
@@ -2060,7 +2214,8 @@ public sealed class MarketplaceRepository
             {
                 IsSuccess = true,
                 Message = "Kayit basarili.",
-                UserName = request.UserName.Trim()
+                UserName = request.UserName.Trim(),
+                RoleName = accountType == "corporate" ? "CorporateUser" : "User"
             };
         }
         catch
@@ -2109,7 +2264,8 @@ public sealed class MarketplaceRepository
         {
             IsSuccess = true,
             Message = "Giris basarili.",
-            UserName = userName
+            UserName = userName,
+            RoleName = "User"
         };
     }
 

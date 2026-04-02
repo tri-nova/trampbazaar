@@ -253,6 +253,13 @@ a {
   margin-top: 0;
 }
 
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
 .accent-panel {
   background: linear-gradient(135deg, #132238 0%, #1e3a5f 100%);
   color: white;
@@ -296,6 +303,14 @@ a {
 .offer-list {
   display: grid;
   gap: 14px;
+}
+
+.package-actions {
+  margin-top: 18px;
+}
+
+.package-actions form {
+  margin: 0;
 }
 
 .conversation-card {
@@ -379,6 +394,23 @@ a {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.account-grid {
+  margin-top: 18px;
+}
+
+.compact-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.payment-list {
+  display: grid;
+  gap: 14px;
+}
+
+.payment-card p {
+  margin: 8px 0 0;
+}
+
 @media (max-width: 960px) {
   .topbar,
   .page-shell {
@@ -388,7 +420,8 @@ a {
 
   .topbar,
   .hero-actions,
-  .filter-bar {
+  .filter-bar,
+  .panel-head {
     flex-direction: column;
   }
 

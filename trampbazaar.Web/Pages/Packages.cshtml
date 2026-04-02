@@ -11,6 +11,16 @@
     </div>
 </section>
 
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="flash-message flash-error">@Model.ErrorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="flash-message flash-success">@Model.StatusMessage</div>
+}
+
 <section class="listing-grid">
 @foreach (var package in Model.Packages)
 {
@@ -19,6 +29,19 @@
         <h2>@package.Name</h2>
         <p>Sure: @(package.DurationDays?.ToString() ?? "-") gun, Kota: @(package.ListingQuota?.ToString() ?? "-")</p>
         <strong>@package.Price.ToString("N0") @package.CurrencyCode</strong>
+        <div class="package-actions">
+            @if (Model.IsAuthenticated)
+            {
+                <form method="post" asp-page-handler="Purchase">
+                    <input type="hidden" name="packageId" value="@package.Id" />
+                    <button type="submit" class="primary-link button-like">Paketi Satin Al</button>
+                </form>
+            }
+            else
+            {
+                <a class="secondary-link" asp-page="/Login">Satin Almak Icin Giris Yap</a>
+            }
+        </div>
     </article>
 }
 </section>
