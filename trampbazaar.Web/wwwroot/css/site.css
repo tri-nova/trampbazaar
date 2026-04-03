@@ -76,10 +76,57 @@ a {
 }
 
 .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+  gap: 22px;
   padding: 42px;
   border: 1px solid var(--line);
   border-radius: 28px;
   background: linear-gradient(135deg, #fff4d6 0%, #ffffff 60%, #e0f2fe 100%);
+}
+
+.hero-copy-block {
+  display: grid;
+  gap: 12px;
+}
+
+.hero-rail {
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.92);
+  color: white;
+}
+
+.hero-rail-title {
+  margin: 0 0 14px;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+}
+
+.hero-stat-stack,
+.mode-grid,
+.feature-grid,
+.listing-tags {
+  display: grid;
+  gap: 12px;
+}
+
+.hero-stat-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hero-stat-card span {
+  display: block;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.hero-stat-card strong {
+  font-size: 1.7rem;
 }
 
 .eyebrow {
@@ -182,6 +229,70 @@ a {
 
 .listing-card p {
   color: var(--muted);
+}
+
+.section-heading {
+  margin-top: 30px;
+  margin-bottom: 18px;
+}
+
+.section-heading h2,
+.feature-card h3 {
+  margin: 0;
+}
+
+.listing-section-heading {
+  margin-bottom: 0;
+}
+
+.mode-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mode-card,
+.feature-card {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.mode-key {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.mode-description,
+.feature-card p,
+.listing-submeta {
+  color: var(--muted);
+}
+
+.feature-band {
+  margin-top: 28px;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.feature-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 246, 255, 0.92) 100%);
+}
+
+.listing-tags {
+  grid-template-columns: repeat(2, max-content);
+  margin-bottom: 10px;
+}
+
+.listing-submeta {
+  margin-top: 0;
 }
 
 .page-header {
@@ -411,6 +522,32 @@ a {
   margin: 8px 0 0;
 }
 
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.status-success {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.status-pending {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.status-danger {
+  background: #fff1f2;
+  color: #be123c;
+}
+
 @media (max-width: 960px) {
   .topbar,
   .page-shell {
@@ -425,7 +562,10 @@ a {
     flex-direction: column;
   }
 
+  .hero,
   .stats-grid,
+  .mode-grid,
+  .feature-grid,
   .listing-grid,
   .detail-grid,
   .inline-field-grid,

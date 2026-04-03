@@ -1,4 +1,6 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using trampbazaar.Api.Services;
 using trampbazaar.Shared.Api;
 using trampbazaar.Shared.Contracts;
@@ -10,17 +12,51 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     Args = args,
     ContentRootPath = AppContext.BaseDirectory
 });
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
 builder.WebHost.UseUrls(builder.Configuration["Server:BaseUrl"] ?? "http://localhost:5136");
 
 builder.Services.AddOpenApi();
+builder.Services.Configure<PaymentGatewayOptions>(builder.Configuration.GetSection("Payments"));
+builder.Services.AddSingleton<DemoPaymentGateway>();
+builder.Services.AddSingleton<StripePaymentGateway>();
+builder.Services.AddSingleton<PaymentGatewayRouter>();
 builder.Services.AddSingleton<MarketplaceRepository>();
 builder.Services.AddSingleton<ApiTokenService>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("api", limiter =>
+    {
+        limiter.PermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:PermitLimit") ?? 120;
+        limiter.Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("RateLimiting:WindowMinutes") ?? 1);
+        limiter.QueueLimit = 0;
+    });
+});
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     options.AddDefaultPolicy(policy =>
+    {
         policy.AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowAnyOrigin());
+            .AllowAnyMethod();
+
+        if (allowedOrigins.Length == 0)
+        {
+            policy.AllowAnyOrigin();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+    });
 });
 
 var app = builder.Build();
@@ -30,8 +66,26 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
+app.UseExceptionHandler(exceptionApp =>
+{
+    exceptionApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "Beklenmeyen sunucu hatasi." });
+    });
+});
 app.UseHttpsRedirection();
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    await next();
+});
 app.UseCors();
+app.UseRateLimiter();
 app.Use(async (context, next) =>
 {
     if (!ApiAuthorizationPolicy.RequiresAuthentication(context.Request.Path, context.Request.Method))
@@ -59,6 +113,14 @@ app.Use(async (context, next) =>
     context.Items[ApiAuthItemKey] = authToken;
     await next();
 });
+
+app.MapGet("/health/live", () => Results.Ok(new
+{
+    status = "ok",
+    service = "api",
+    utcNow = DateTimeOffset.UtcNow
+}))
+    .WithName("ApiHealthLive");
 
 app.MapGet(ApiRoutes.Dashboard, async (MarketplaceRepository repository, CancellationToken cancellationToken) =>
     Results.Ok(await repository.GetDashboardAsync(cancellationToken)))
@@ -460,6 +522,32 @@ app.MapPost(ApiRoutes.Payments, async (CreatePaymentRequest request, Marketplace
     }
 })
     .WithName("CreatePayment");
+
+app.MapPost("api/payments/webhooks/stripe", async (HttpContext httpContext, MarketplaceRepository repository, StripePaymentGateway stripePaymentGateway, CancellationToken cancellationToken) =>
+{
+    using var reader = new StreamReader(httpContext.Request.Body);
+    var payload = await reader.ReadToEndAsync(cancellationToken);
+
+    try
+    {
+        var webhook = stripePaymentGateway.ParseWebhook(payload, httpContext.Request.Headers["Stripe-Signature"]);
+        if (webhook.IsPaymentCompleted)
+        {
+            await repository.MarkPaymentPaidAsync("stripe", webhook.ProviderTransactionId, webhook.PaidAt ?? DateTimeOffset.UtcNow, cancellationToken);
+        }
+        else if (webhook.IsPaymentFailed)
+        {
+            await repository.MarkPaymentFailedAsync("stripe", webhook.ProviderTransactionId, cancellationToken);
+        }
+
+        return Results.Ok();
+    }
+    catch (Stripe.StripeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+    .WithName("StripePaymentWebhook");
 
 app.MapPost(ApiRoutes.Complaints, async (CreateComplaintRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
 {

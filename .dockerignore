@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.db
+**/appsettings.Local.json
+**/appsettings.*.Local.json
+api-*.log
+*.nupkg

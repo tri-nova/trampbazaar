@@ -190,6 +190,8 @@ public sealed class CreatePaymentRequest
 {
     public string UserName { get; set; } = string.Empty;
     public Guid PackageId { get; set; }
+    public string? SuccessUrl { get; set; }
+    public string? CancelUrl { get; set; }
 }
 
 public sealed class PaymentResultDto
@@ -199,6 +201,8 @@ public sealed class PaymentResultDto
     public decimal Amount { get; set; }
     public string CurrencyCode { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string ProviderName { get; set; } = string.Empty;
+    public string CheckoutUrl { get; set; } = string.Empty;
 }
 
 public sealed class UserPaymentDto

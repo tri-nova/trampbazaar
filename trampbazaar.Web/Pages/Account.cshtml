@@ -101,7 +101,7 @@
                 <span>@payment.PackageName</span>
                 <strong>@payment.Amount.ToString("N0") @payment.CurrencyCode</strong>
                 <p>Tip: @payment.PaymentType</p>
-                <p>Durum: @payment.PaymentStatus</p>
+                <p>Durum: <span class="status-pill @(payment.PaymentStatus == "paid" ? "status-success" : payment.PaymentStatus == "pending" ? "status-pending" : "status-danger")">@payment.PaymentStatus</span></p>
                 <p class="muted-copy">@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
             </article>
         }

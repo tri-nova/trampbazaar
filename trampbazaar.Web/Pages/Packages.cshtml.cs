@@ -39,13 +39,20 @@ public sealed class PackagesModel(MarketplaceWebApiClient apiClient) : PageModel
         var payment = await apiClient.CreatePaymentAsync(new CreatePaymentRequest
         {
             UserName = userName,
-            PackageId = packageId
+            PackageId = packageId,
+            SuccessUrl = Url.Page("/PaymentSuccess", pageHandler: null, values: null, protocol: Request.Scheme),
+            CancelUrl = Url.Page("/PaymentCancel", pageHandler: null, values: null, protocol: Request.Scheme)
         }, cancellationToken);
 
         if (payment is null)
         {
             ErrorMessage = "Odeme kaydi olusturulamadi.";
             return RedirectToPage();
+        }
+
+        if (!string.IsNullOrWhiteSpace(payment.CheckoutUrl))
+        {
+            return Redirect(payment.CheckoutUrl);
         }
 
         StatusMessage = $"{payment.Amount:N0} {payment.CurrencyCode} tutarinda satin alma tamamlandi.";

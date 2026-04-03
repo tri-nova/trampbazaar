@@ -269,6 +269,30 @@ a {
   letter-spacing: 0.08em;
 }
 
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.status-success {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.status-pending {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.status-danger {
+  background: #fff1f2;
+  color: #be123c;
+}
+
 .flash-message {
   margin-bottom: 16px;
   padding: 14px 18px;

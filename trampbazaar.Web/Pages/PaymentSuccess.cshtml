@@ -1,0 +1,19 @@
+@page
+@model trampbazaar.Web.Pages.PaymentSuccessModel
+@{
+    ViewData["Title"] = "Odeme Basarili";
+}
+
+<section class="detail-shell wide-shell">
+    <p class="eyebrow">Odeme Durumu</p>
+    <h1>Odeme islemi tamamlandi.</h1>
+    <p class="detail-copy">Odeme saglayicisindan donus alindi. Webhook ile kayit kesinlestiginde satin alma durumunu hesabinizda gorebilirsiniz.</p>
+    @if (Model.PaymentId.HasValue)
+    {
+        <p class="muted-copy">Odeme no: @Model.PaymentId</p>
+    }
+    <div class="hero-actions">
+        <a class="primary-link" asp-page="/Account">Hesabima Git</a>
+        <a class="secondary-link" asp-page="/Packages">Paketlere Don</a>
+    </div>
+</section>

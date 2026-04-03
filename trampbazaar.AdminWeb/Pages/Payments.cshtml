@@ -51,7 +51,7 @@
                 <td>@payment.Amount.ToString("N2") @payment.CurrencyCode</td>
                 <td>@(string.IsNullOrWhiteSpace(payment.PackageName) ? "-" : payment.PackageName)</td>
                 <td>@(string.IsNullOrWhiteSpace(payment.ListingTitle) ? "-" : payment.ListingTitle)</td>
-                <td>@payment.PaymentStatus</td>
+                <td><span class="status-pill @(payment.PaymentStatus == "paid" ? "status-success" : payment.PaymentStatus == "pending" ? "status-pending" : "status-danger")">@payment.PaymentStatus</span></td>
                 <td>@(string.IsNullOrWhiteSpace(payment.ProviderName) ? "-" : payment.ProviderName)</td>
                 <td>@(payment.PaidAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                 <td>@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>

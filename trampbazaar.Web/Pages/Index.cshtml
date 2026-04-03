@@ -5,7 +5,7 @@
 }
 
 <section class="hero">
-    <div>
+    <div class="hero-copy-block">
         <p class="eyebrow">Yeni nesil pazar yeri</p>
         <h1>Urun sat, acik artirma kur, takas ve teklif akisini tek yerde yonet.</h1>
         <p class="hero-copy">TrampBazaar bireysel ve kurumsal kullanicilar icin ayni altyapi ustunde calisan hibrit pazar yeri deneyimi sunar.</p>
@@ -14,6 +14,18 @@
             <a class="secondary-link" asp-page="/Packages">Paketleri Incele</a>
         </div>
     </div>
+    <aside class="hero-rail">
+        <p class="hero-rail-title">Canli bakis</p>
+        <div class="hero-stat-stack">
+        @foreach (var stat in Model.Dashboard.QuickStats.Take(3))
+        {
+            <article class="hero-stat-card">
+                <span>@stat.Label</span>
+                <strong>@stat.Value</strong>
+            </article>
+        }
+        </div>
+    </aside>
 </section>
 
 <section class="stats-grid">
@@ -26,6 +38,51 @@
 }
 </section>
 
+<section class="feature-showcase">
+    <div class="section-heading">
+        <p class="eyebrow">Akis</p>
+        <h2>Platformun nasil calistigi tek ekranda gorunsun.</h2>
+    </div>
+    <div class="mode-grid">
+    @foreach (var mode in Model.Dashboard.SaleModes)
+    {
+        <article class="mode-card">
+            <span class="mode-key">@mode.Name</span>
+            <p class="mode-description">@mode.Description</p>
+            <ol class="step-list">
+            @foreach (var step in mode.Steps)
+            {
+                <li>@step</li>
+            }
+            </ol>
+        </article>
+    }
+    </div>
+</section>
+
+<section class="feature-band">
+    <div class="section-heading">
+        <p class="eyebrow">One cikanlar</p>
+        <h2>TrampBazaar sadece listeleme degil, operasyon akisi da sunuyor.</h2>
+    </div>
+    <div class="feature-grid">
+    @foreach (var feature in Model.Dashboard.Features)
+    {
+        <article class="feature-card">
+            <h3>@feature.Title</h3>
+            <p>@feature.Description</p>
+        </article>
+    }
+    </div>
+</section>
+
+<section class="section-heading listing-section-heading">
+    <div>
+        <p class="eyebrow">Vitrin</p>
+        <h2>Demo ilanlar</h2>
+    </div>
+</section>
+
 <section class="listing-grid">
 @foreach (var listing in Model.FeaturedListings)
 {
@@ -33,6 +90,11 @@
         <span class="listing-meta">@listing.Category</span>
         <h2>@listing.Title</h2>
         <p>@listing.Description</p>
+        <div class="listing-tags">
+            <span class="status-pill status-pending">@listing.SaleMode</span>
+            <span class="status-pill">@listing.Status</span>
+        </div>
+        <p class="listing-submeta">@listing.SellerName • @listing.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</p>
         <strong>@listing.Price.ToString("N0") @listing.Currency</strong>
     </a>
 }

@@ -8,11 +8,13 @@ namespace trampbazaar.Api.Services;
 public sealed class MarketplaceRepository
 {
     private readonly string connectionString;
+    private readonly PaymentGatewayRouter paymentGatewayRouter;
 
-    public MarketplaceRepository(IConfiguration configuration)
+    public MarketplaceRepository(IConfiguration configuration, PaymentGatewayRouter paymentGatewayRouter)
     {
         connectionString = configuration.GetConnectionString("SqlServer")
             ?? throw new InvalidOperationException("SqlServer connection string bulunamadi.");
+        this.paymentGatewayRouter = paymentGatewayRouter;
     }
 
     public async Task<DashboardResponse> GetDashboardAsync(CancellationToken cancellationToken = default)
@@ -710,6 +712,10 @@ public sealed class MarketplaceRepository
 
     public async Task<PaymentResultDto> CreatePaymentAsync(CreatePaymentRequest request, CancellationToken cancellationToken = default)
     {
+        var gateway = paymentGatewayRouter.Resolve();
+        var successUrl = paymentGatewayRouter.GetSuccessUrl(request.SuccessUrl);
+        var cancelUrl = paymentGatewayRouter.GetCancelUrl(request.CancelUrl);
+
         await using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken);
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
@@ -749,14 +755,51 @@ public sealed class MarketplaceRepository
             }
 
             var paymentId = Guid.NewGuid();
+            var paymentType = MapPackageTypeToPaymentType(packageType);
+            var providerName = gateway.ProviderName;
+            var providerTransactionId = string.Empty;
+            var checkoutUrl = string.Empty;
+            var paymentStatus = "paid";
+            DateTimeOffset? paidAt = DateTimeOffset.UtcNow;
+
+            if (string.Equals(providerName, "stripe", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(successUrl) || string.IsNullOrWhiteSpace(cancelUrl))
+                {
+                    throw new InvalidOperationException("Odeme donus URL ayarlari eksik.");
+                }
+
+                var session = await gateway.CreatePackageCheckoutAsync(new PaymentGatewayCheckoutRequest
+                {
+                    PaymentId = paymentId,
+                    PackageId = request.PackageId,
+                    UserName = request.UserName,
+                    PackageName = packageName,
+                    PaymentType = paymentType,
+                    Amount = amount,
+                    CurrencyCode = currencyCode,
+                    SuccessUrl = successUrl,
+                    CancelUrl = cancelUrl
+                }, cancellationToken);
+
+                providerTransactionId = session.ProviderTransactionId;
+                checkoutUrl = session.CheckoutUrl;
+                paymentStatus = "pending";
+                paidAt = null;
+            }
+            else
+            {
+                providerTransactionId = paymentId.ToString("N");
+            }
+
             const string insertSql = """
                 INSERT INTO dbo.Payments
                 (
-                    Id, UserId, PackageId, PaymentType, Amount, CurrencyCode, PaymentStatus, ProviderName, PaidAt, CreatedAt
+                    Id, UserId, PackageId, PaymentType, Amount, CurrencyCode, PaymentStatus, ProviderName, ProviderTransactionId, PaidAt, CreatedAt
                 )
                 VALUES
                 (
-                    @Id, @UserId, @PackageId, @PaymentType, @Amount, @CurrencyCode, N'paid', N'demo', SYSUTCDATETIME(), SYSUTCDATETIME()
+                    @Id, @UserId, @PackageId, @PaymentType, @Amount, @CurrencyCode, @PaymentStatus, @ProviderName, @ProviderTransactionId, @PaidAt, SYSUTCDATETIME()
                 );
                 """;
 
@@ -765,23 +808,34 @@ public sealed class MarketplaceRepository
                 command.Parameters.AddWithValue("@Id", paymentId);
                 command.Parameters.AddWithValue("@UserId", userId);
                 command.Parameters.AddWithValue("@PackageId", request.PackageId);
-                command.Parameters.AddWithValue("@PaymentType", MapPackageTypeToPaymentType(packageType));
+                command.Parameters.AddWithValue("@PaymentType", paymentType);
                 command.Parameters.AddWithValue("@Amount", amount);
                 command.Parameters.AddWithValue("@CurrencyCode", currencyCode);
+                command.Parameters.AddWithValue("@PaymentStatus", paymentStatus);
+                command.Parameters.AddWithValue("@ProviderName", providerName);
+                command.Parameters.AddWithValue("@ProviderTransactionId", string.IsNullOrWhiteSpace(providerTransactionId) ? DBNull.Value : providerTransactionId);
+                command.Parameters.AddWithValue("@PaidAt", paidAt.HasValue ? paidAt.Value.UtcDateTime : DBNull.Value);
                 await command.ExecuteNonQueryAsync(cancellationToken);
             }
 
-            await InsertNotificationAsync(connection, transaction, userId, "payment.completed", "Paket satin alindi", $"{packageName} paketi hesabiniza tanimlandi.", "package", request.PackageId, cancellationToken);
+            if (paymentStatus == "paid")
+            {
+                await InsertNotificationAsync(connection, transaction, userId, "payment.completed", "Paket satin alindi", $"{packageName} paketi hesabiniza tanimlandi.", "package", request.PackageId, cancellationToken);
+            }
 
             await transaction.CommitAsync(cancellationToken);
 
             return new PaymentResultDto
             {
                 PaymentId = paymentId,
-                PaymentStatus = "paid",
+                PaymentStatus = paymentStatus,
                 Amount = amount,
                 CurrencyCode = currencyCode,
-                Message = "Paket satin alma kaydi olusturuldu."
+                ProviderName = providerName,
+                CheckoutUrl = checkoutUrl,
+                Message = paymentStatus == "pending"
+                    ? "Odeme oturumu olusturuldu."
+                    : "Paket satin alma kaydi olusturuldu."
             };
         }
         catch
@@ -789,6 +843,89 @@ public sealed class MarketplaceRepository
             await transaction.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    public async Task<bool> MarkPaymentPaidAsync(string providerName, string providerTransactionId, DateTimeOffset paidAt, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        const string updateSql = """
+            UPDATE dbo.Payments
+            SET PaymentStatus = N'paid',
+                PaidAt = @PaidAt
+            WHERE ProviderName = @ProviderName
+              AND ProviderTransactionId = @ProviderTransactionId
+              AND PaymentStatus <> N'paid';
+            """;
+
+        const string paymentInfoSql = """
+            SELECT TOP 1 p.UserId, p.PackageId, ISNULL(pkg.Name, N'Paket') AS PackageName
+            FROM dbo.Payments p
+            LEFT JOIN dbo.Packages pkg ON pkg.Id = p.PackageId
+            WHERE p.ProviderName = @ProviderName
+              AND p.ProviderTransactionId = @ProviderTransactionId;
+            """;
+
+        try
+        {
+            await using (var updateCommand = new SqlCommand(updateSql, connection, transaction))
+            {
+                updateCommand.Parameters.AddWithValue("@PaidAt", paidAt.UtcDateTime);
+                updateCommand.Parameters.AddWithValue("@ProviderName", providerName);
+                updateCommand.Parameters.AddWithValue("@ProviderTransactionId", providerTransactionId);
+                await updateCommand.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            Guid userId = Guid.Empty;
+            Guid? packageId = null;
+            var packageName = "Paket";
+
+            await using (var infoCommand = new SqlCommand(paymentInfoSql, connection, transaction))
+            {
+                infoCommand.Parameters.AddWithValue("@ProviderName", providerName);
+                infoCommand.Parameters.AddWithValue("@ProviderTransactionId", providerTransactionId);
+                await using var reader = await infoCommand.ExecuteReaderAsync(cancellationToken);
+                if (await reader.ReadAsync(cancellationToken))
+                {
+                    userId = reader.GetGuid(0);
+                    packageId = reader.IsDBNull(1) ? null : reader.GetGuid(1);
+                    packageName = reader.GetString(2);
+                }
+            }
+
+            if (userId != Guid.Empty)
+            {
+                await InsertNotificationAsync(connection, transaction, userId, "payment.completed", "Paket satin alindi", $"{packageName} paketi hesabiniza tanimlandi.", "package", packageId, cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<bool> MarkPaymentFailedAsync(string providerName, string providerTransactionId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            UPDATE dbo.Payments
+            SET PaymentStatus = N'failed'
+            WHERE ProviderName = @ProviderName
+              AND ProviderTransactionId = @ProviderTransactionId
+              AND PaymentStatus = N'pending';
+            """;
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@ProviderName", providerName);
+        command.Parameters.AddWithValue("@ProviderTransactionId", providerTransactionId);
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
     public async Task<ComplaintResultDto> CreateComplaintAsync(CreateComplaintRequest request, CancellationToken cancellationToken = default)

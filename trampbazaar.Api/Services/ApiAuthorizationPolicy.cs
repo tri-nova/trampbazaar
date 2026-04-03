@@ -6,9 +6,15 @@ public static class ApiAuthorizationPolicy
 {
     public static bool RequiresAuthentication(PathString path, string method)
     {
+        if (path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         if (path.StartsWithSegments("/api/admin/auth/login", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/api/auth/register", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/api/payments/webhooks/stripe", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/api/dashboard", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/api/categories", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWithSegments("/api/sale-modes", StringComparison.OrdinalIgnoreCase) ||

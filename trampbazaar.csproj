@@ -73,18 +73,22 @@
 		<Compile Remove="trampbazaar.AdminWeb\**\*.cs" />
 		<Compile Remove="trampbazaar.Web\**\*.cs" />
 		<Compile Remove="trampbazaar.Shared\**\*.cs" />
+		<Compile Remove="trampbazaar.Tests\**\*.cs" />
 		<EmbeddedResource Remove="trampbazaar.Api\**" />
 		<EmbeddedResource Remove="trampbazaar.AdminWeb\**" />
 		<EmbeddedResource Remove="trampbazaar.Web\**" />
 		<EmbeddedResource Remove="trampbazaar.Shared\**" />
+		<EmbeddedResource Remove="trampbazaar.Tests\**" />
 		<MauiXaml Remove="trampbazaar.Api\**\*.xaml" />
 		<MauiXaml Remove="trampbazaar.AdminWeb\**\*.xaml" />
 		<MauiXaml Remove="trampbazaar.Web\**\*.xaml" />
 		<MauiXaml Remove="trampbazaar.Shared\**\*.xaml" />
+		<MauiXaml Remove="trampbazaar.Tests\**\*.xaml" />
 		<None Remove="trampbazaar.Api\**" />
 		<None Remove="trampbazaar.AdminWeb\**" />
 		<None Remove="trampbazaar.Web\**" />
 		<None Remove="trampbazaar.Shared\**" />
+		<None Remove="trampbazaar.Tests\**" />
 	</ItemGroup>
 
 </Project>
