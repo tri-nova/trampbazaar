@@ -54,7 +54,7 @@ public sealed class MockMarketplaceDataService(SessionStateService sessionStateS
         {
             UserName = sessionStateService.UserName,
             HeroTitle = "TrampBazaar kullanici uygulamasi MVP akisina gecti.",
-            HeroSubtitle = "Giris, ilanlar, ilan detayi ve ilan olusturma ekranlari ayni mock/live servisle calisacak.",
+            HeroSubtitle = "Mock modda da giris, ilan, teklif, mesaj ve paket akislarini ayni arayuzle deneyebilirsiniz.",
             QuickStats =
             [
                 new QuickStat { Value = listings.Count.ToString(), Label = "aktif ilan" },
@@ -70,7 +70,7 @@ public sealed class MockMarketplaceDataService(SessionStateService sessionStateS
                 new FlowStage { Title = "Listings", Caption = "Kategori ve satis moduna gore filtreleme" },
                 new FlowStage { Title = "Detail", Caption = "Ilan detay ve teklif akisi" },
                 new FlowStage { Title = "Create", Caption = "Yeni ilan olusturma formu" },
-                new FlowStage { Title = "API/SQL", Caption = "Bir sonraki baglanti adimi" }
+                new FlowStage { Title = "Packages", Caption = "Paket, bildirim ve sikayet akislarinin mock karsiligi" }
             ],
             FeatureCards = features.Select(x => new FeatureCard { Title = x.Title, Description = x.Description }).ToList(),
             FeaturedProducts = listings.Select(MapProductCard).ToList()

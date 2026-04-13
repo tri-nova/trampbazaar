@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
+		<MobileTargetFrameworks>net9.0-ios;net9.0-maccatalyst</MobileTargetFrameworks>
+		<AndroidSdkRoot Condition="'$(AndroidSdkDirectory)' != ''">$(AndroidSdkDirectory)</AndroidSdkRoot>
+		<AndroidSdkRoot Condition="'$(AndroidSdkRoot)' == '' And $([MSBuild]::IsOSPlatform('windows'))">$(LocalAppData)\Android\Sdk</AndroidSdkRoot>
+		<AndroidPlatformJar>$(AndroidSdkRoot)\platforms\android-35\android.jar</AndroidPlatformJar>
+		<MobileTargetFrameworks Condition="Exists('$(AndroidPlatformJar)')">net9.0-android;$(MobileTargetFrameworks)</MobileTargetFrameworks>
+		<TargetFrameworks>$(MobileTargetFrameworks)</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
 		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
 		<!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
@@ -19,12 +24,13 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<NoWarn>$(NoWarn);XC0022;XC0025</NoWarn>
 
 		<!-- Display name -->
-		<ApplicationTitle>trampbazaar</ApplicationTitle>
+		<ApplicationTitle>TrampBazaar</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.trampbazaar</ApplicationId>
+		<ApplicationId>com.trampbazaar.app</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>

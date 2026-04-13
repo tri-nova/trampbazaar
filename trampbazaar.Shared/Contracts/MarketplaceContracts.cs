@@ -3,6 +3,8 @@ namespace trampbazaar.Shared.Contracts;
 public sealed class DashboardResponse
 {
     public string PlatformName { get; set; } = string.Empty;
+    public bool IsDataAvailable { get; set; } = true;
+    public string? NoticeMessage { get; set; }
     public IReadOnlyList<QuickStatDto> QuickStats { get; set; } = Array.Empty<QuickStatDto>();
     public IReadOnlyList<SaleModeDto> SaleModes { get; set; } = Array.Empty<SaleModeDto>();
     public IReadOnlyList<FeatureDto> Features { get; set; } = Array.Empty<FeatureDto>();
@@ -247,6 +249,8 @@ public sealed class ComplaintResultDto
 
 public sealed class AdminOverviewDto
 {
+    public bool IsDataAvailable { get; set; } = true;
+    public string? NoticeMessage { get; set; }
     public int ActiveUsers { get; set; }
     public int PublishedListings { get; set; }
     public int OpenConversations { get; set; }

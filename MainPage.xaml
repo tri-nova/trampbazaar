@@ -136,7 +136,7 @@
                                FontFamily="OpenSansSemibold"
                                FontSize="22"
                                TextColor="#7C2D12" />
-                        <Label Text="Akis semasindaki dort ana senaryoyu tek ekranda deneyip sonraki sprintte gercek is kurallarina baglayabiliriz."
+                        <Label Text="Bu ekranda satis modlarini, aktif akislari ve canli veri durumunu tek bakista gorebilirsiniz."
                                FontSize="14"
                                TextColor="#9A3412" />
                     </VerticalStackLayout>

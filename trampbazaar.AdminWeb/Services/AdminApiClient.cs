@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using trampbazaar.Shared.Api;
 using trampbazaar.Shared.Contracts;
 
@@ -33,39 +34,46 @@ public sealed class AdminApiClient(HttpClient httpClient, IHttpContextAccessor h
     }
 
     public async Task<AdminOverviewDto> GetOverviewAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<AdminOverviewDto>(ApiRoutes.AdminOverview, cancellationToken)
+        => await GetFromJsonAuthorizedAsync(
+               ApiRoutes.AdminOverview,
+               new AdminOverviewDto
+               {
+                   IsDataAvailable = false,
+                   NoticeMessage = "Veritabani baglantisi su anda kullanilamiyor. Dashboard ozeti gecici olarak bos gosteriliyor."
+               },
+               cancellationToken)
            ?? new AdminOverviewDto();
 
     public async Task<IReadOnlyList<AdminUserDto>> GetUsersAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<AdminUserDto>>(ApiRoutes.AdminUsers, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<AdminUserDto>>(ApiRoutes.AdminUsers, [], cancellationToken)
            ?? [];
 
     public async Task<IReadOnlyList<AdminListingDto>> GetListingsAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<AdminListingDto>>(ApiRoutes.AdminListings, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<AdminListingDto>>(ApiRoutes.AdminListings, [], cancellationToken)
            ?? [];
 
     public async Task<IReadOnlyList<AdminCategoryDto>> GetCategoriesAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<AdminCategoryDto>>(ApiRoutes.AdminCategories, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<AdminCategoryDto>>(ApiRoutes.AdminCategories, [], cancellationToken)
            ?? [];
 
     public async Task<IReadOnlyList<AdminPackageDto>> GetPackagesAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<AdminPackageDto>>(ApiRoutes.AdminPackages, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<AdminPackageDto>>(ApiRoutes.AdminPackages, [], cancellationToken)
            ?? [];
 
     public async Task<AdminPaymentsDashboardDto> GetPaymentsAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<AdminPaymentsDashboardDto>(ApiRoutes.AdminPayments, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<AdminPaymentsDashboardDto>(ApiRoutes.AdminPayments, new AdminPaymentsDashboardDto(), cancellationToken)
            ?? new AdminPaymentsDashboardDto();
 
     public async Task<IReadOnlyList<AdminComplaintDto>> GetComplaintsAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<AdminComplaintDto>>(ApiRoutes.AdminComplaints, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<AdminComplaintDto>>(ApiRoutes.AdminComplaints, [], cancellationToken)
            ?? [];
 
     public async Task<IReadOnlyList<ConversationSummaryDto>> GetConversationsAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<ConversationSummaryDto>>(ApiRoutes.AdminConversations, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<ConversationSummaryDto>>(ApiRoutes.AdminConversations, [], cancellationToken)
            ?? [];
 
     public async Task<IReadOnlyList<NotificationDto>> GetNotificationsAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonAuthorizedAsync<List<NotificationDto>>(ApiRoutes.AdminNotifications, cancellationToken)
+        => await GetFromJsonAuthorizedAsync<List<NotificationDto>>(ApiRoutes.AdminNotifications, [], cancellationToken)
            ?? [];
 
     public async Task UpdateListingStatusAsync(Guid listingId, string status, CancellationToken cancellationToken = default)
@@ -138,13 +146,31 @@ public sealed class AdminApiClient(HttpClient httpClient, IHttpContextAccessor h
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
-    private async Task<T?> GetFromJsonAuthorizedAsync<T>(string route, CancellationToken cancellationToken)
+    private async Task<T?> GetFromJsonAuthorizedAsync<T>(string route, T? fallback, CancellationToken cancellationToken)
     {
-        using var request = CreateAuthorizedRequest(HttpMethod.Get, route);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        return response.IsSuccessStatusCode
-            ? await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken)
-            : default;
+        try
+        {
+            using var request = CreateAuthorizedRequest(HttpMethod.Get, route);
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return fallback;
+            }
+
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken) ?? fallback;
+        }
+        catch (HttpRequestException)
+        {
+            return fallback;
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return fallback;
+        }
+        catch (JsonException)
+        {
+            return fallback;
+        }
     }
 
     private Task<HttpResponseMessage> PostAsJsonAuthorizedAsync<T>(string route, T payload, CancellationToken cancellationToken)

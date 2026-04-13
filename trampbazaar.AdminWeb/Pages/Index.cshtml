@@ -8,13 +8,20 @@
     <div>
         <p class="eyebrow">TrampBazaar Admin</p>
         <h1>Platform operasyonunu tek ekranda izle.</h1>
-        <p class="hero-copy">Bu ilk sürüm dashboard, kullanıcılar ve ilanlar ekranlarını canlı API üstünden besliyor. Sonraki turda moderasyon, kategori ve paket yönetimi eklenecek.</p>
+        <p class="hero-copy">Bu ilk surum dashboard, kullanicilar ve ilanlar ekranlarini canli API ustunden besliyor. Sonraki turda moderasyon, kategori ve paket yonetimi eklenecek.</p>
     </div>
     <div class="hero-actions">
         <a class="action-link" asp-page="/Users">Kullanicilar</a>
         <a class="action-link" asp-page="/Listings">Ilanlar</a>
     </div>
 </section>
+
+@if (!Model.Overview.IsDataAvailable && !string.IsNullOrWhiteSpace(Model.Overview.NoticeMessage))
+{
+    <section class="status-banner">
+        <p>@Model.Overview.NoticeMessage</p>
+    </section>
+}
 
 <section class="stats-grid">
 @foreach (var stat in Model.Overview.Highlights)

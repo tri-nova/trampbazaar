@@ -576,3 +576,16 @@ a {
     grid-template-columns: 1fr;
   }
 }
+.status-banner {
+    margin: 0 0 2rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(176, 104, 0, 0.22);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 244, 214, 0.96), rgba(255, 250, 238, 0.94));
+    color: #7c4a00;
+}
+
+.status-banner p {
+    margin: 0;
+    font-weight: 600;
+}

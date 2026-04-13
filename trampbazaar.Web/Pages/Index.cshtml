@@ -28,6 +28,13 @@
     </aside>
 </section>
 
+@if (!Model.Dashboard.IsDataAvailable && !string.IsNullOrWhiteSpace(Model.Dashboard.NoticeMessage))
+{
+    <section class="status-banner">
+        <p>@Model.Dashboard.NoticeMessage</p>
+    </section>
+}
+
 <section class="stats-grid">
 @foreach (var stat in Model.Dashboard.QuickStats)
 {

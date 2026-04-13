@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using trampbazaar.Shared.Api;
 using trampbazaar.Shared.Contracts;
 
@@ -22,8 +23,21 @@ public sealed class MarketplaceWebApiClient(HttpClient httpClient, IHttpContextA
     }
 
     public async Task<DashboardResponse> GetDashboardAsync(CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<DashboardResponse>(ApiRoutes.Dashboard, cancellationToken)
-           ?? new DashboardResponse();
+        => await GetJsonSafeAsync(
+            ApiRoutes.Dashboard,
+            new DashboardResponse
+            {
+                PlatformName = "TrampBazaar",
+                IsDataAvailable = false,
+                NoticeMessage = "Veritabani baglantisi su anda kullanilamiyor. Demo veriler yerine bos gorunum gosteriliyor."
+            },
+            cancellationToken)
+           ?? new DashboardResponse
+           {
+               PlatformName = "TrampBazaar",
+               IsDataAvailable = false,
+               NoticeMessage = "Veritabani baglantisi su anda kullanilamiyor. Demo veriler yerine bos gorunum gosteriliyor."
+           };
 
     public async Task<IReadOnlyList<ListingDto>> GetListingsAsync(string? category = null, string? saleMode = null, CancellationToken cancellationToken = default)
     {
@@ -44,20 +58,20 @@ public sealed class MarketplaceWebApiClient(HttpClient httpClient, IHttpContextA
             route = $"{route}?{string.Join("&", query)}";
         }
 
-        return await httpClient.GetFromJsonAsync<List<ListingDto>>(route, cancellationToken) ?? [];
+        return await GetJsonSafeAsync<List<ListingDto>>(route, [], cancellationToken) ?? [];
     }
 
     public async Task<ListingDto?> GetListingAsync(Guid listingId, CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<ListingDto>(ApiRoutes.ListingById(listingId), cancellationToken);
+        => await GetJsonSafeAsync<ListingDto?>(ApiRoutes.ListingById(listingId), null, cancellationToken);
 
     public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync(CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<List<CategoryDto>>(ApiRoutes.Categories, cancellationToken) ?? [];
+        => await GetJsonSafeAsync<List<CategoryDto>>(ApiRoutes.Categories, [], cancellationToken) ?? [];
 
     public async Task<IReadOnlyList<SaleModeDto>> GetSaleModesAsync(CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<List<SaleModeDto>>(ApiRoutes.SaleModes, cancellationToken) ?? [];
+        => await GetJsonSafeAsync<List<SaleModeDto>>(ApiRoutes.SaleModes, [], cancellationToken) ?? [];
 
     public async Task<IReadOnlyList<PackageDto>> GetPackagesAsync(CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<List<PackageDto>>(ApiRoutes.Packages, cancellationToken) ?? [];
+        => await GetJsonSafeAsync<List<PackageDto>>(ApiRoutes.Packages, [], cancellationToken) ?? [];
 
     public async Task<UserAccountDashboardDto?> GetAccountDashboardAsync(CancellationToken cancellationToken = default)
         => await GetFromJsonAuthorizedAsync<UserAccountDashboardDto>(ApiRoutes.Account, cancellationToken);
@@ -79,13 +93,13 @@ public sealed class MarketplaceWebApiClient(HttpClient httpClient, IHttpContextA
     }
 
     public async Task<AuctionDto?> GetListingAuctionAsync(Guid listingId, CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<AuctionDto>(ApiRoutes.ListingAuction(listingId), cancellationToken);
+        => await GetJsonSafeAsync<AuctionDto?>(ApiRoutes.ListingAuction(listingId), null, cancellationToken);
 
     public async Task<IReadOnlyList<AuctionBidDto>> GetListingAuctionBidsAsync(Guid listingId, CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<List<AuctionBidDto>>(ApiRoutes.ListingAuctionBids(listingId), cancellationToken) ?? [];
+        => await GetJsonSafeAsync<List<AuctionBidDto>>(ApiRoutes.ListingAuctionBids(listingId), [], cancellationToken) ?? [];
 
     public async Task<IReadOnlyList<ListingOfferDto>> GetListingOffersAsync(Guid listingId, CancellationToken cancellationToken = default)
-        => await httpClient.GetFromJsonAsync<List<ListingOfferDto>>(ApiRoutes.ListingOffers(listingId), cancellationToken) ?? [];
+        => await GetJsonSafeAsync<List<ListingOfferDto>>(ApiRoutes.ListingOffers(listingId), [], cancellationToken) ?? [];
 
     public async Task<(bool IsSuccess, string? ErrorMessage)> CreateListingOfferAsync(Guid listingId, CreateListingOfferRequest request, CancellationToken cancellationToken = default)
     {
@@ -199,6 +213,32 @@ public sealed class MarketplaceWebApiClient(HttpClient httpClient, IHttpContextA
         catch
         {
             return "Islem basarisiz.";
+        }
+    }
+
+    private async Task<T?> GetJsonSafeAsync<T>(string route, T? fallback, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await httpClient.GetAsync(route, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return fallback;
+            }
+
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken) ?? fallback;
+        }
+        catch (HttpRequestException)
+        {
+            return fallback;
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return fallback;
+        }
+        catch (JsonException)
+        {
+            return fallback;
         }
     }
 }

@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 builder.Configuration
     .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+ConfigurationSafetyValidator.ValidateRuntimeConfiguration(builder.Configuration, builder.Environment);
 builder.WebHost.UseUrls(builder.Configuration["Server:BaseUrl"] ?? "http://localhost:5136");
 
 builder.Services.AddOpenApi();
@@ -71,8 +72,21 @@ app.UseExceptionHandler(exceptionApp =>
 {
     exceptionApp.Run(async context =>
     {
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
+
+        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        if (exception is SqlException or TimeoutException)
+        {
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "Veritabani baglantisi su anda kullanilamiyor.",
+                code = "database_unavailable"
+            });
+            return;
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await context.Response.WriteAsJsonAsync(new { error = "Beklenmeyen sunucu hatasi." });
     });
 });
@@ -528,24 +542,26 @@ app.MapPost("api/payments/webhooks/stripe", async (HttpContext httpContext, Mark
     using var reader = new StreamReader(httpContext.Request.Body);
     var payload = await reader.ReadToEndAsync(cancellationToken);
 
+    PaymentWebhookParseResult webhook;
     try
     {
-        var webhook = stripePaymentGateway.ParseWebhook(payload, httpContext.Request.Headers["Stripe-Signature"]);
-        if (webhook.IsPaymentCompleted)
-        {
-            await repository.MarkPaymentPaidAsync("stripe", webhook.ProviderTransactionId, webhook.PaidAt ?? DateTimeOffset.UtcNow, cancellationToken);
-        }
-        else if (webhook.IsPaymentFailed)
-        {
-            await repository.MarkPaymentFailedAsync("stripe", webhook.ProviderTransactionId, cancellationToken);
-        }
-
-        return Results.Ok();
+        webhook = stripePaymentGateway.ParseWebhook(payload, httpContext.Request.Headers["Stripe-Signature"]);
     }
-    catch (Stripe.StripeException ex)
+    catch (Exception ex)
     {
         return Results.BadRequest(new { error = ex.Message });
     }
+
+    if (webhook.IsPaymentCompleted)
+    {
+        await repository.MarkPaymentPaidAsync("stripe", webhook.ProviderTransactionId, webhook.PaidAt ?? DateTimeOffset.UtcNow, cancellationToken);
+    }
+    else if (webhook.IsPaymentFailed)
+    {
+        await repository.MarkPaymentFailedAsync("stripe", webhook.ProviderTransactionId, cancellationToken);
+    }
+
+    return Results.Ok();
 })
     .WithName("StripePaymentWebhook");
 
@@ -692,3 +708,5 @@ static string GetAuthenticatedUser(HttpContext httpContext)
 
     throw new InvalidOperationException("Kimlik dogrulama bulunamadi.");
 }
+
+public partial class Program;

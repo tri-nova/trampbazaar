@@ -28,12 +28,12 @@ public sealed class ApiMarketplaceDataService(HttpClient httpClient, SessionStat
             SaleModes = saleModes.Select(MapSaleMode).ToList(),
             SharedFlow =
             [
-                new FlowStage { Title = "Login", Caption = "Gercek JWT akisi sonraki adim" },
+                new FlowStage { Title = "Login", Caption = "JWT ile oturum acma" },
                 new FlowStage { Title = "Listings", Caption = "Canli API listeleme" },
-                new FlowStage { Title = "Detail", Caption = "Ilan detay ekrani" },
-                new FlowStage { Title = "Create", Caption = "Ilan olusturma" },
-                new FlowStage { Title = "Messages", Caption = "Mesaj kutusu sonraki faz" },
-                new FlowStage { Title = "Admin", Caption = "Web panel sonraki faz" }
+                new FlowStage { Title = "Detail", Caption = "Ilan detay, teklif ve acik artirma" },
+                new FlowStage { Title = "Create", Caption = "Yeni ilan olusturma" },
+                new FlowStage { Title = "Messages", Caption = "Konusma ve bildirim akisi" },
+                new FlowStage { Title = "Admin", Caption = "Web yonetim paneli ile ayni veri kaynagi" }
             ],
             FeatureCards =
             [

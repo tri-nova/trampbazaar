@@ -20,7 +20,7 @@ public sealed class SessionStateService
     {
         UserName = Preferences.Default.Get(UserNameKey, "Misafir");
         IsAuthenticated = Preferences.Default.Get(IsAuthenticatedKey, false);
-        AccessToken = Preferences.Default.Get(AccessTokenKey, string.Empty);
+        AccessToken = LoadAccessToken();
 
         if (!IsAuthenticated)
         {
@@ -49,7 +49,58 @@ public sealed class SessionStateService
     {
         Preferences.Default.Set(UserNameKey, UserName);
         Preferences.Default.Set(IsAuthenticatedKey, IsAuthenticated);
-        Preferences.Default.Set(AccessTokenKey, AccessToken);
+        PersistAccessToken(AccessToken);
         SessionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static string LoadAccessToken()
+    {
+        try
+        {
+            var token = SecureStorage.Default.GetAsync(AccessTokenKey).GetAwaiter().GetResult();
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                return token;
+            }
+        }
+        catch
+        {
+        }
+
+        var legacyToken = Preferences.Default.Get(AccessTokenKey, string.Empty);
+        if (string.IsNullOrWhiteSpace(legacyToken))
+        {
+            return string.Empty;
+        }
+
+        PersistAccessToken(legacyToken);
+        Preferences.Default.Remove(AccessTokenKey);
+        return legacyToken;
+    }
+
+    private static void PersistAccessToken(string accessToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                SecureStorage.Default.Remove(AccessTokenKey);
+            }
+            else
+            {
+                SecureStorage.Default.SetAsync(AccessTokenKey, accessToken).GetAwaiter().GetResult();
+            }
+        }
+        catch
+        {
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                Preferences.Default.Remove(AccessTokenKey);
+            }
+            else
+            {
+                Preferences.Default.Set(AccessTokenKey, accessToken);
+            }
+        }
     }
 }

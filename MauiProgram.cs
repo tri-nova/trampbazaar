@@ -23,11 +23,13 @@ public static class MauiProgram
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton<SessionStateService>();
 
+#if DEBUG
         if (options.UseMockData)
         {
             builder.Services.AddSingleton<IMarketplaceDataService, MockMarketplaceDataService>();
         }
         else
+#endif
         {
             builder.Services.AddSingleton(new HttpClient
             {
