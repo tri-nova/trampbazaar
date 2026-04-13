@@ -9,6 +9,7 @@ public sealed class ApiAuthorizationPolicyTests
     [InlineData("/api/dashboard", "GET", false)]
     [InlineData("/api/categories", "GET", false)]
     [InlineData("/api/packages", "GET", false)]
+    [InlineData("/api/payments/webhooks/stripe", "POST", false)]
     [InlineData("/api/listings", "GET", false)]
     [InlineData("/api/listings/123", "GET", false)]
     [InlineData("/api/account", "GET", true)]

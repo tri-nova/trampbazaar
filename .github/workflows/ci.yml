@@ -32,5 +32,8 @@ jobs:
       - name: Build Admin Web
         run: dotnet build trampbazaar.AdminWeb/trampbazaar.AdminWeb.csproj --configuration Release --no-restore
 
+      - name: Install Playwright Browsers
+        run: pwsh trampbazaar.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
       - name: Run Tests
         run: dotnet test trampbazaar.Tests/trampbazaar.Tests.csproj --configuration Release --no-build

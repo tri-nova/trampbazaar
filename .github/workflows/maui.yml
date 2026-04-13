@@ -1,0 +1,95 @@
+name: maui
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/maui.yml"
+      - "trampbazaar.csproj"
+      - "App.xaml"
+      - "App.xaml.cs"
+      - "AppShell.xaml"
+      - "AppShell.xaml.cs"
+      - "MainPage.xaml"
+      - "MainPage.xaml.cs"
+      - "Configuration/**"
+      - "Converters/**"
+      - "Models/**"
+      - "Pages/**"
+      - "Platforms/**"
+      - "Properties/**"
+      - "Resources/**"
+      - "Services/**"
+      - "ViewModels/**"
+      - "trampbazaar.Shared/**"
+  pull_request:
+    paths:
+      - ".github/workflows/maui.yml"
+      - "trampbazaar.csproj"
+      - "App.xaml"
+      - "App.xaml.cs"
+      - "AppShell.xaml"
+      - "AppShell.xaml.cs"
+      - "MainPage.xaml"
+      - "MainPage.xaml.cs"
+      - "Configuration/**"
+      - "Converters/**"
+      - "Models/**"
+      - "Pages/**"
+      - "Platforms/**"
+      - "Properties/**"
+      - "Resources/**"
+      - "Services/**"
+      - "ViewModels/**"
+      - "trampbazaar.Shared/**"
+  workflow_dispatch:
+
+jobs:
+  maui-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            tfm: net9.0-windows10.0.19041.0
+            display_name: windows
+          - os: windows-latest
+            tfm: net9.0-android
+            display_name: android
+            needs_java: true
+          - os: macos-14
+            tfm: net9.0-ios
+            display_name: ios
+          - os: macos-14
+            tfm: net9.0-maccatalyst
+            display_name: maccatalyst
+
+    name: maui-${{ matrix.display_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Setup Java
+        if: matrix.needs_java == true
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore MAUI project
+        run: dotnet restore trampbazaar.csproj -p:TargetFramework=${{ matrix.tfm }}
+
+      - name: Build MAUI target
+        run: dotnet build trampbazaar.csproj --configuration Release --no-restore -p:TargetFramework=${{ matrix.tfm }}
