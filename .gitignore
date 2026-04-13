@@ -19,5 +19,6 @@ TestResults/
 *.snupkg
 
 artifacts/
+.env
 appsettings.Local.json
 appsettings.*.Local.json

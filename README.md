@@ -13,6 +13,8 @@ Operational extras included:
 - Dockerfiles for `Api`, `Web`, `AdminWeb`
 - `docker-compose.yml` for local production-like smoke runs
 - `/health/live` endpoints on API, Web and AdminWeb
+- GitHub Actions workflows for web/API tests, containers and MAUI target builds
+- on-demand MAUI release artifact workflow for desktop/mobile smoke packaging
 
 ## Current status
 
@@ -29,8 +31,9 @@ Implemented:
 Not fully production-complete:
 
 - Real payment credentials are not bundled
-- MAUI full cross-platform CI is not configured
-- End-to-end browser or API integration tests are not present
+- Store-ready signed mobile packages still require platform signing credentials
+- MAUI defaults to live API mode; mock data is now only an explicit debug fallback
+- Browser smoke end-to-end automation covers Web and AdminWeb critical flows, but not the MAUI client UI
 
 ## Local setup
 
@@ -41,6 +44,7 @@ Run SQL scripts in order:
 1. [001_initial_setup.sql](./Database/SqlServer/001_initial_setup.sql)
 2. [002_listing_offers.sql](./Database/SqlServer/002_listing_offers.sql)
 3. [003_grant_admin_role.sql](./Database/SqlServer/003_grant_admin_role.sql)
+4. [004_schema_versioning.sql](./Database/SqlServer/004_schema_versioning.sql)
 
 ### 2. API configuration
 
@@ -168,6 +172,14 @@ Verified locally:
 - `dotnet build trampbazaar.AdminWeb/trampbazaar.AdminWeb.csproj`
 - `dotnet test trampbazaar.Tests/trampbazaar.Tests.csproj`
 
+Current automated coverage includes:
+
+- unit tests for token and authorization rules
+- API integration smoke tests for health, auth gate, and database-unavailable behavior
+- payment gateway and webhook signature validation tests
+- Web and AdminWeb integration smoke tests for render and redirect flows
+- Playwright browser smoke tests for Web and AdminWeb shell navigation
+
 MAUI Windows target also builds locally. Full solution build can still fail if Android SDK `android-35` is not installed.
 
 ## CI
@@ -176,6 +188,8 @@ GitHub Actions workflow:
 
 - [.github/workflows/ci.yml](./.github/workflows/ci.yml)
 - [.github/workflows/containers.yml](./.github/workflows/containers.yml)
+- [.github/workflows/maui.yml](./.github/workflows/maui.yml)
+- [.github/workflows/maui-artifacts.yml](./.github/workflows/maui-artifacts.yml)
 
 It runs:
 
@@ -183,7 +197,27 @@ It runs:
 - API build
 - Web build
 - AdminWeb build
+- Playwright browser install
 - tests
+
+MAUI workflow runs:
+
+- Windows MAUI build
+- Android MAUI build
+- iOS MAUI build
+- MacCatalyst MAUI build
+
+MAUI artifact workflow publishes:
+
+- Windows unpackaged release output
+- Android APK artifact
+- iOS simulator artifact
+- MacCatalyst artifact
+
+Release notes:
+
+- [docs/mobile-release.md](./docs/mobile-release.md)
+- [docs/stripe-production.md](./docs/stripe-production.md)
 
 Container workflow:
 
@@ -205,12 +239,23 @@ Default ports:
 - Web: `http://localhost:8081`
 - Admin: `http://localhost:8082`
 
-Before real use, replace these placeholder values in [docker-compose.yml](./docker-compose.yml):
+Before the first run, create a local `.env` from [.env.example](./.env.example) and fill in your environment-specific values.
 
-- `ConnectionStrings__SqlServer`
-- `Auth__SigningKey`
-- `Payments__Provider`
-- Stripe keys if `stripe` is enabled
+Required:
+
+- `TB_SQLSERVER_CONNECTION`
+- `TB_AUTH_SIGNING_KEY`
+
+Optional:
+
+- `TB_PAYMENTS_PROVIDER`
+- `TB_PAYMENTS_SUCCESS_URL`
+- `TB_PAYMENTS_CANCEL_URL`
+- `TB_STRIPE_SECRET_KEY`
+- `TB_STRIPE_WEBHOOK_SECRET`
+- `TB_WEB_ORIGIN`
+- `TB_ADMIN_ORIGIN`
+- `TB_INTERNAL_API_BASE_URL`
 
 ## Registry publishing
 
@@ -230,3 +275,4 @@ On GitHub-hosted runs it uses the built-in `GITHUB_TOKEN`. Make sure package wri
 - Keep `Payments:Provider=demo` in non-payment environments.
 - Use `/health/live` for load balancer or container liveness probes.
 - Prefer environment variables or secret stores over server-local JSON files in production.
+- Follow [docs/stripe-production.md](./docs/stripe-production.md) before enabling live Stripe traffic.
