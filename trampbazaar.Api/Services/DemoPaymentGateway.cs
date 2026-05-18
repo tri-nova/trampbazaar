@@ -13,6 +13,13 @@ public sealed class DemoPaymentGateway : IPaymentGateway
             CheckoutUrl = string.Empty
         });
 
+    public Task<PaymentGatewayCheckoutSession> CreateCustomCheckoutAsync(GenericPaymentCheckoutRequest request, CancellationToken cancellationToken = default)
+        => Task.FromResult(new PaymentGatewayCheckoutSession
+        {
+            ProviderTransactionId = request.PaymentId.ToString("N"),
+            CheckoutUrl = string.Empty
+        });
+
     public PaymentWebhookParseResult ParseWebhook(string payload, string? signatureHeader)
         => throw new NotSupportedException("Demo odeme saglayicisi webhook desteklemez.");
 }

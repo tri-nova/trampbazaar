@@ -1,0 +1,45 @@
+@page
+@model trampbazaar.Web.Pages.LedgerModel
+@{
+    ViewData["Title"] = "Cari Hareketler";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Hesap Modulu</p>
+        <h1>Cari Hareketler</h1>
+        <p class="muted-copy">Borç, alacak ve odeme gecmisini tek listede gorun.</p>
+    </div>
+</section>
+
+<section class="detail-panel">
+    <div class="detail-grid">
+        <article class="detail-card"><span>Guncel Bakiye</span><strong>@Model.Ledger.CurrentBalance.ToString("N2") TRY</strong></article>
+        <article class="detail-card"><span>Toplam Borc</span><strong>@Model.Ledger.TotalDebit.ToString("N2") TRY</strong></article>
+        <article class="detail-card"><span>Toplam Alacak</span><strong>@Model.Ledger.TotalCredit.ToString("N2") TRY</strong></article>
+        <article class="detail-card"><span>Odeme</span><a class="secondary-link" asp-page="/AccountPayment">Kredi Karti ile Ode</a></article>
+    </div>
+
+    <form method="get" class="stack-form" style="margin-top:20px;">
+        <div class="inline-field-grid">
+            <label>Baslangic Tarihi<input asp-for="StartDate" type="date" /></label>
+            <label>Bitis Tarihi<input asp-for="EndDate" type="date" /></label>
+        </div>
+        <button type="submit" class="secondary-link button-like">Filtrele</button>
+    </form>
+
+    <div class="payment-list" style="margin-top:20px;">
+    @foreach (var item in Model.Ledger.Entries)
+    {
+        <article class="detail-card payment-card">
+            <span>@item.EntryDate.ToLocalTime().ToString("dd.MM.yyyy")</span>
+            <strong>@item.Description</strong>
+            <p>Siparis: @item.OrderNumber</p>
+            <p>Borc: @item.DebitAmount.ToString("N2") TRY / Alacak: @item.CreditAmount.ToString("N2") TRY</p>
+            <p>Bakiye: @item.BalanceAfter.ToString("N2") TRY</p>
+            <p>Yontem: @item.PaymentMethod</p>
+        </article>
+    }
+    </div>
+</section>
+

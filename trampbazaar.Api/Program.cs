@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Net.Mail;
 using trampbazaar.Api.Services;
 using trampbazaar.Shared.Api;
 using trampbazaar.Shared.Contracts;
@@ -371,6 +372,214 @@ app.MapGet(ApiRoutes.Account, async (MarketplaceRepository repository, HttpConte
 })
     .WithName("GetAccount");
 
+app.MapGet(ApiRoutes.AccountProfile, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    var profile = await repository.GetUserAccountProfileAsync(GetAuthenticatedUser(httpContext), cancellationToken);
+    return profile is null ? Results.NotFound() : Results.Ok(profile);
+})
+    .WithName("GetAccountProfile");
+
+app.MapPut(ApiRoutes.AccountProfile, async (UpdateUserAccountProfileRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(request.FirstName) ||
+        string.IsNullOrWhiteSpace(request.LastName) ||
+        string.IsNullOrWhiteSpace(request.Email))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["request"] = ["Ad, soyad ve e-posta zorunludur."]
+        });
+    }
+
+    if (!IsValidEmailAddress(request.Email))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["email"] = ["Gecerli bir e-posta adresi girin."]
+        });
+    }
+
+    if (!IsValidGender(request.Gender))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["gender"] = ["Cinsiyet male, female veya unspecified olmalidir."]
+        });
+    }
+
+    var profile = await repository.UpsertUserAccountProfileAsync(GetAuthenticatedUser(httpContext), request, cancellationToken);
+    return Results.Ok(profile);
+})
+    .WithName("UpdateAccountProfile");
+
+app.MapPut(ApiRoutes.AccountBillingAddress, async (UpsertUserBillingAddressRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(request.AddressTitle) ||
+        string.IsNullOrWhiteSpace(request.FullName) ||
+        string.IsNullOrWhiteSpace(request.Country) ||
+        string.IsNullOrWhiteSpace(request.City) ||
+        string.IsNullOrWhiteSpace(request.District) ||
+        string.IsNullOrWhiteSpace(request.PhoneNumber) ||
+        string.IsNullOrWhiteSpace(request.AddressLine))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["request"] = ["Fatura basligi, ad soyad, ulke, sehir, ilce, telefon ve adres zorunludur."]
+        });
+    }
+
+    if (!IsValidInvoiceType(request.InvoiceType))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["invoiceType"] = ["Fatura tipi individual veya corporate olmalidir."]
+        });
+    }
+
+    if (string.Equals(request.InvoiceType, "corporate", StringComparison.OrdinalIgnoreCase) &&
+        (string.IsNullOrWhiteSpace(request.TaxOffice) || string.IsNullOrWhiteSpace(request.TaxNumber)))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["tax"] = ["Kurumsal fatura icin vergi dairesi ve vergi numarasi zorunludur."]
+        });
+    }
+
+    var profile = await repository.UpsertUserBillingAddressAsync(GetAuthenticatedUser(httpContext), request, cancellationToken);
+    return Results.Ok(profile);
+})
+    .WithName("UpdateAccountBillingAddress");
+
+app.MapPost(ApiRoutes.AccountPassword, async (ChangePasswordRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+        string.IsNullOrWhiteSpace(request.NewPassword) ||
+        string.IsNullOrWhiteSpace(request.ConfirmPassword))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["request"] = ["Tum sifre alanlari zorunludur."]
+        });
+    }
+
+    if (request.NewPassword.Length < 8)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["newPassword"] = ["Yeni sifre en az 8 karakter olmalidir."]
+        });
+    }
+
+    if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["confirmPassword"] = ["Yeni sifre tekrar alani eslesmiyor."]
+        });
+    }
+
+    try
+    {
+        await repository.ChangeUserPasswordAsync(GetAuthenticatedUser(httpContext), request, cancellationToken);
+        return Results.Ok(new { message = "Sifre guncellendi." });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+    .WithName("ChangeAccountPassword");
+
+app.MapGet(ApiRoutes.AccountOrders, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+    Results.Ok(await repository.GetCustomerOrdersAsync(GetAuthenticatedUser(httpContext), cancellationToken)))
+    .WithName("GetAccountOrders");
+
+app.MapGet(ApiRoutes.AccountLedger, async (DateTime? startDate, DateTime? endDate, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+    Results.Ok(await repository.GetAccountLedgerAsync(GetAuthenticatedUser(httpContext), startDate, endDate, cancellationToken)))
+    .WithName("GetAccountLedger");
+
+app.MapPost(ApiRoutes.AccountLedgerPayments, async (CreateAccountLedgerPaymentRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    if (request.Amount <= 0 || string.IsNullOrWhiteSpace(request.Description))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["request"] = ["Odeme tutari sifirdan buyuk olmali ve aciklama zorunludur."]
+        });
+    }
+
+    return Results.Ok(await repository.CreateAccountLedgerPaymentAsync(GetAuthenticatedUser(httpContext), request, cancellationToken));
+})
+    .WithName("CreateAccountLedgerPayment");
+
+app.MapGet(ApiRoutes.AccountFavorites, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+    Results.Ok(await repository.GetFavoritesAsync(GetAuthenticatedUser(httpContext), cancellationToken)))
+    .WithName("GetAccountFavorites");
+
+app.MapPost($"{ApiRoutes.AccountFavorites}/{{listingId:guid}}", async (Guid listingId, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    await repository.AddFavoriteAsync(GetAuthenticatedUser(httpContext), listingId, cancellationToken);
+    return Results.Ok();
+})
+    .WithName("AddAccountFavorite");
+
+app.MapDelete($"{ApiRoutes.AccountFavorites}/{{listingId:guid}}", async (Guid listingId, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    var removed = await repository.RemoveFavoriteAsync(GetAuthenticatedUser(httpContext), listingId, cancellationToken);
+    return removed ? Results.Ok() : Results.NotFound();
+})
+    .WithName("RemoveAccountFavorite");
+
+app.MapGet(ApiRoutes.AccountStockAlerts, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+    Results.Ok(await repository.GetStockAlertsAsync(GetAuthenticatedUser(httpContext), cancellationToken)))
+    .WithName("GetAccountStockAlerts");
+
+app.MapPost(ApiRoutes.AccountStockAlerts, async (AddStockAlertRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    if (request.ListingId == Guid.Empty)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["listingId"] = ["Ilan secimi zorunludur."]
+        });
+    }
+
+    return Results.Ok(await repository.AddStockAlertAsync(GetAuthenticatedUser(httpContext), request, cancellationToken));
+})
+    .WithName("AddAccountStockAlert");
+
+app.MapDelete($"{ApiRoutes.AccountStockAlerts}/{{alertId:guid}}", async (Guid alertId, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    var removed = await repository.RemoveStockAlertAsync(GetAuthenticatedUser(httpContext), alertId, cancellationToken);
+    return removed ? Results.Ok() : Results.NotFound();
+})
+    .WithName("RemoveAccountStockAlert");
+
+app.MapGet(ApiRoutes.AccountPriceAlerts, async (MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+    Results.Ok(await repository.GetPriceAlertsAsync(GetAuthenticatedUser(httpContext), cancellationToken)))
+    .WithName("GetAccountPriceAlerts");
+
+app.MapPost(ApiRoutes.AccountPriceAlerts, async (AddPriceAlertRequest request, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    if (request.ListingId == Guid.Empty || request.TargetPrice <= 0)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["request"] = ["Ilan secimi ve hedef fiyat zorunludur."]
+        });
+    }
+
+    return Results.Ok(await repository.AddPriceAlertAsync(GetAuthenticatedUser(httpContext), request, cancellationToken));
+})
+    .WithName("AddAccountPriceAlert");
+
+app.MapDelete($"{ApiRoutes.AccountPriceAlerts}/{{alertId:guid}}", async (Guid alertId, MarketplaceRepository repository, HttpContext httpContext, CancellationToken cancellationToken) =>
+{
+    var removed = await repository.RemovePriceAlertAsync(GetAuthenticatedUser(httpContext), alertId, cancellationToken);
+    return removed ? Results.Ok() : Results.NotFound();
+})
+    .WithName("RemoveAccountPriceAlert");
+
 app.MapGet(ApiRoutes.Listings, async (string? category, string? saleMode, MarketplaceRepository repository, CancellationToken cancellationToken) =>
     Results.Ok(await repository.GetListingsAsync(category, saleMode, cancellationToken)))
     .WithName("GetListings");
@@ -664,6 +873,39 @@ app.MapPost(ApiRoutes.AuthRegister, async (RegisterRequestDto request, Marketpla
         });
     }
 
+    if (!IsValidEmailAddress(request.Email))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["email"] = ["Gecerli bir e-posta adresi girin."]
+        });
+    }
+
+    if (request.Password.Length < 8)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["password"] = ["Sifre en az 8 karakter olmalidir."]
+        });
+    }
+
+    if (request.UserName.Contains(' ') || request.UserName.Length < 3)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["userName"] = ["Kullanici adi en az 3 karakter olmali ve bosluk icermemelidir."]
+        });
+    }
+
+    if (!string.Equals(request.AccountType, "individual", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(request.AccountType, "corporate", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["accountType"] = ["Hesap tipi individual veya corporate olmalidir."]
+        });
+    }
+
     var result = await repository.RegisterAsync(request, cancellationToken);
     if (!result.IsSuccess)
     {
@@ -708,5 +950,27 @@ static string GetAuthenticatedUser(HttpContext httpContext)
 
     throw new InvalidOperationException("Kimlik dogrulama bulunamadi.");
 }
+
+static bool IsValidEmailAddress(string email)
+{
+    try
+    {
+        _ = new MailAddress(email);
+        return true;
+    }
+    catch (FormatException)
+    {
+        return false;
+    }
+}
+
+static bool IsValidGender(string gender)
+    => string.Equals(gender, "male", StringComparison.OrdinalIgnoreCase) ||
+       string.Equals(gender, "female", StringComparison.OrdinalIgnoreCase) ||
+       string.Equals(gender, "unspecified", StringComparison.OrdinalIgnoreCase);
+
+static bool IsValidInvoiceType(string invoiceType)
+    => string.Equals(invoiceType, "individual", StringComparison.OrdinalIgnoreCase) ||
+       string.Equals(invoiceType, "corporate", StringComparison.OrdinalIgnoreCase);
 
 public partial class Program;

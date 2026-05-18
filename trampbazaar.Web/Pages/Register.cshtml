@@ -14,19 +14,30 @@
     <form method="post" class="stack-form">
         <label>
             Ad soyad
-            <input asp-for="FullName" />
+            <input asp-for="FullName" autocomplete="name" />
         </label>
         <label>
             Kullanici adi
-            <input asp-for="UserName" />
+            <input asp-for="UserName" autocomplete="username" />
+        </label>
+        <label>
+            Hesap tipi
+            <select asp-for="AccountType">
+                <option value="individual">Bireysel</option>
+                <option value="corporate">Kurumsal</option>
+            </select>
         </label>
         <label>
             E-posta
-            <input asp-for="Email" type="email" />
+            <input asp-for="Email" type="email" autocomplete="email" />
         </label>
         <label>
             Sifre
-            <input asp-for="Password" type="password" />
+            <input asp-for="Password" type="password" autocomplete="new-password" />
+        </label>
+        <label>
+            Sifre tekrar
+            <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" />
         </label>
         <button type="submit" class="primary-link button-like">Kayit Ol</button>
     </form>

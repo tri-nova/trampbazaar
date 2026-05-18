@@ -7,6 +7,7 @@ public interface IPaymentGateway
     bool IsEnabled { get; }
 
     Task<PaymentGatewayCheckoutSession> CreatePackageCheckoutAsync(PaymentGatewayCheckoutRequest request, CancellationToken cancellationToken = default);
+    Task<PaymentGatewayCheckoutSession> CreateCustomCheckoutAsync(GenericPaymentCheckoutRequest request, CancellationToken cancellationToken = default);
 
     PaymentWebhookParseResult ParseWebhook(string payload, string? signatureHeader);
 }
@@ -28,6 +29,19 @@ public sealed class PaymentGatewayCheckoutSession
 {
     public string ProviderTransactionId { get; set; } = string.Empty;
     public string CheckoutUrl { get; set; } = string.Empty;
+}
+
+public sealed class GenericPaymentCheckoutRequest
+{
+    public Guid PaymentId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string ItemName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string PaymentType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public string SuccessUrl { get; set; } = string.Empty;
+    public string CancelUrl { get; set; } = string.Empty;
 }
 
 public sealed class PaymentWebhookParseResult

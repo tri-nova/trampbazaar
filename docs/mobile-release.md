@@ -22,6 +22,17 @@ Store-ready signed packages still require platform credentials outside the repos
 - Apple signing certificate + provisioning profile for device IPA / App Store delivery
 - Windows code-signing certificate if packaged MSIX distribution is needed
 
+## Android publish commands
+
+Build the Android package with the API base URL injected at publish time:
+
+```powershell
+dotnet publish trampbazaar.csproj -c Release -f net9.0-android35.0 -p:AndroidPackageFormat=apk -p:TrampBazaarApiBaseUrl=https://api.example.com/ -o artifacts/android-apk
+dotnet publish trampbazaar.csproj -c Release -f net9.0-android35.0 -p:AndroidPackageFormat=aab -p:TrampBazaarApiBaseUrl=https://api.example.com/ -o artifacts/android-aab
+```
+
+Debug Android builds default to `http://10.0.2.2:5136/` so the emulator can reach the local API. Non-Android debug builds keep using `http://localhost:5136/`.
+
 ## Recommended next secrets
 
 If signed mobile delivery is added later, keep these as GitHub Actions secrets instead of files committed to the repo:

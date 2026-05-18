@@ -522,6 +522,193 @@ a {
   margin: 8px 0 0;
 }
 
+.account-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.account-sidebar,
+.account-panel,
+.account-metric-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.account-sidebar {
+  overflow: hidden;
+}
+
+.account-identity-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 22px;
+  background: linear-gradient(180deg, #ecf8f6 0%, #f8fbfb 100%);
+  border-bottom: 1px solid #d5e7e3;
+}
+
+.account-avatar {
+  width: 116px;
+  height: 116px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #7c7c7c;
+  color: white;
+  font-size: 2.4rem;
+  font-weight: 700;
+  border: 8px solid white;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.account-identity-card h2,
+.account-panel h1,
+.account-panel h2 {
+  margin: 0;
+}
+
+.account-identity-card p {
+  margin: 0;
+  color: #64748b;
+}
+
+.account-tier {
+  text-transform: capitalize;
+  font-weight: 700;
+  color: #f79453 !important;
+}
+
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-weight: 700;
+}
+
+.account-side-nav {
+  display: grid;
+}
+
+.account-side-link,
+.account-side-button {
+  padding: 22px 24px;
+  border-top: 1px solid #edf2f7;
+  background: white;
+  font: inherit;
+  text-align: left;
+}
+
+.account-side-link-active {
+  background: #fafafa;
+  font-weight: 700;
+}
+
+.account-side-form {
+  margin: 0;
+}
+
+.account-side-button {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+}
+
+.account-main {
+  display: grid;
+  gap: 22px;
+}
+
+.account-dashboard-strip,
+.account-editor-grid,
+.account-field-grid,
+.account-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.account-dashboard-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.account-metric-card {
+  padding: 20px 22px;
+}
+
+.account-metric-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+}
+
+.account-metric-card strong {
+  font-size: 1.3rem;
+}
+
+.account-editor-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.85fr);
+  align-items: start;
+}
+
+.account-stack {
+  align-content: start;
+}
+
+.account-panel {
+  padding: 28px;
+}
+
+.account-panel-head {
+  margin-bottom: 18px;
+}
+
+.account-field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-field-grid-third {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.account-checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500 !important;
+}
+
+.account-checkbox-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.account-subpanel {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.account-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 15px 20px;
+  border: 0;
+  border-radius: 18px;
+  background: #f79453;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -568,6 +755,10 @@ a {
   .feature-grid,
   .listing-grid,
   .detail-grid,
+  .account-shell,
+  .account-dashboard-strip,
+  .account-editor-grid,
+  .account-field-grid,
   .inline-field-grid,
   .inline-actions,
   .offer-card-head,

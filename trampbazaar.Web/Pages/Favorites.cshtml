@@ -1,0 +1,37 @@
+@page
+@model trampbazaar.Web.Pages.FavoritesModel
+@{
+    ViewData["Title"] = "Favorilerim";
+}
+
+<section class="page-header"><div><p class="eyebrow">Hesap Modulu</p><h1>Favorilerim</h1></div></section>
+
+<section class="detail-panel">
+    <form method="post" asp-page-handler="Add" class="stack-form">
+        <label>Yeni favori ekle
+            <select asp-for="ListingId">
+                @foreach (var listing in Model.Listings)
+                {
+                    <option value="@listing.Id">@listing.Title - @listing.Price.ToString("N0") @listing.Currency</option>
+                }
+            </select>
+        </label>
+        <button type="submit" class="secondary-link button-like">Favoriye Ekle</button>
+    </form>
+
+    <div class="payment-list" style="margin-top:20px;">
+    @foreach (var item in Model.Favorites)
+    {
+        <article class="detail-card payment-card">
+            <span>@item.Category</span>
+            <strong>@item.Title</strong>
+            <p>@item.Price.ToString("N0") @item.CurrencyCode</p>
+            <p>Satici: @item.SellerName</p>
+            <form method="post" asp-page-handler="Remove" asp-route-listingId="@item.ListingId">
+                <button type="submit" class="nav-button">Favoriden Cikar</button>
+            </form>
+        </article>
+    }
+    </div>
+</section>
+

@@ -27,6 +27,15 @@
                     <p>@notification.Body</p>
                     <div class="inline-actions">
                         <span>@notification.NotificationType</span>
+                        @if (notification.RelatedEntityId.HasValue &&
+                             (string.Equals(notification.RelatedEntityType, "listing", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(notification.RelatedEntityType, "conversation", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            <form method="post" asp-page-handler="Open">
+                                <input type="hidden" name="notificationId" value="@notification.Id" />
+                                <button type="submit" class="secondary-link button-like">Ac</button>
+                            </form>
+                        }
                         @if (!notification.IsRead)
                         {
                             <form method="post" asp-page-handler="Read">

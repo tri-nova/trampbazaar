@@ -8,6 +8,15 @@ public static class ApiRoutes
     public const string Listings = "api/listings";
     public const string Packages = "api/packages";
     public const string Account = "api/account";
+    public const string AccountProfile = "api/account/profile";
+    public const string AccountBillingAddress = "api/account/billing-address";
+    public const string AccountPassword = "api/account/password";
+    public const string AccountOrders = "api/account/orders";
+    public const string AccountLedger = "api/account/ledger";
+    public const string AccountLedgerPayments = "api/account/ledger/payments";
+    public const string AccountFavorites = "api/account/favorites";
+    public const string AccountStockAlerts = "api/account/stock-alerts";
+    public const string AccountPriceAlerts = "api/account/price-alerts";
     public const string Payments = "api/payments";
     public const string Conversations = "api/conversations";
     public const string Complaints = "api/complaints";
@@ -34,6 +43,9 @@ public static class ApiRoutes
     public static string ConversationById(Guid conversationId) => $"{Conversations}/{conversationId}";
     public static string ConversationMessages(Guid conversationId) => $"{ConversationById(conversationId)}/messages";
     public static string NotificationById(Guid notificationId) => $"{Notifications}/{notificationId}";
+    public static string AccountFavoriteByListingId(Guid listingId) => $"{AccountFavorites}/{listingId}";
+    public static string AccountStockAlertById(Guid alertId) => $"{AccountStockAlerts}/{alertId}";
+    public static string AccountPriceAlertById(Guid alertId) => $"{AccountPriceAlerts}/{alertId}";
     public static string PackageById(Guid packageId) => $"{Packages}/{packageId}";
     public static string AdminUserStatus(Guid userId) => $"{AdminUsers}/{userId}/status";
     public static string AdminListingStatus(Guid listingId) => $"{AdminListings}/{listingId}/status";

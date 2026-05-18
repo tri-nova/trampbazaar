@@ -861,7 +861,7 @@ public sealed class MarketplaceRepository
             """;
 
         const string paymentInfoSql = """
-            SELECT TOP 1 p.UserId, p.PackageId, ISNULL(pkg.Name, N'Paket') AS PackageName
+            SELECT TOP 1 p.Id, p.UserId, p.PackageId, ISNULL(pkg.Name, N'Paket') AS PackageName, p.Amount, p.PaymentType
             FROM dbo.Payments p
             LEFT JOIN dbo.Packages pkg ON pkg.Id = p.PackageId
             WHERE p.ProviderName = @ProviderName
@@ -878,9 +878,12 @@ public sealed class MarketplaceRepository
                 await updateCommand.ExecuteNonQueryAsync(cancellationToken);
             }
 
+            Guid paymentId = Guid.Empty;
             Guid userId = Guid.Empty;
             Guid? packageId = null;
             var packageName = "Paket";
+            decimal amount = 0;
+            var paymentType = string.Empty;
 
             await using (var infoCommand = new SqlCommand(paymentInfoSql, connection, transaction))
             {
@@ -889,15 +892,26 @@ public sealed class MarketplaceRepository
                 await using var reader = await infoCommand.ExecuteReaderAsync(cancellationToken);
                 if (await reader.ReadAsync(cancellationToken))
                 {
-                    userId = reader.GetGuid(0);
-                    packageId = reader.IsDBNull(1) ? null : reader.GetGuid(1);
-                    packageName = reader.GetString(2);
+                    paymentId = reader.GetGuid(0);
+                    userId = reader.GetGuid(1);
+                    packageId = reader.IsDBNull(2) ? null : reader.GetGuid(2);
+                    packageName = reader.GetString(3);
+                    amount = reader.GetDecimal(4);
+                    paymentType = reader.GetString(5);
                 }
             }
 
             if (userId != Guid.Empty)
             {
+                if (string.Equals(paymentType, "commission", StringComparison.OrdinalIgnoreCase))
+                {
+                    await InsertLedgerCreditAsync(connection, transaction, userId, paymentId, amount, "Cari hesap odemesi", "Kredi Karti", cancellationToken);
+                    await InsertNotificationAsync(connection, transaction, userId, "ledger.payment.completed", "Cari odeme alindi", "Cari hesap odemeniz basariyla kayda alindi.", "payment", paymentId, cancellationToken);
+                }
+                else
+                {
                 await InsertNotificationAsync(connection, transaction, userId, "payment.completed", "Paket satin alindi", $"{packageName} paketi hesabiniza tanimlandi.", "package", packageId, cancellationToken);
+                }
             }
 
             await transaction.CommitAsync(cancellationToken);
@@ -1225,6 +1239,937 @@ public sealed class MarketplaceRepository
         dashboard.RecentListings = listings;
         dashboard.RecentPayments = payments;
         return dashboard;
+    }
+
+    public async Task<UserAccountProfileDto?> GetUserAccountProfileAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        const string profileSql = """
+            SELECT TOP 1
+                ISNULL(up.UserName, u.Email) AS UserName,
+                u.AccountType,
+                ISNULL(up.FullName, N'') AS FullName,
+                ISNULL(d.FirstName, N'') AS FirstName,
+                ISNULL(d.LastName, N'') AS LastName,
+                u.Email,
+                ISNULL(d.MobilePhone, ISNULL(u.PhoneNumber, N'')) AS MobilePhone,
+                ISNULL(d.WorkPhone, N'') AS WorkPhone,
+                ISNULL(d.NationalId, N'') AS NationalId,
+                ISNULL(d.IsForeignCitizen, 0) AS IsForeignCitizen,
+                d.BirthDate,
+                ISNULL(d.Gender, N'unspecified') AS Gender,
+                ISNULL(up.AddressLine, N'') AS AddressLine,
+                ISNULL(d.PostalCode, N'') AS PostalCode,
+                ISNULL(up.City, N'') AS City,
+                ISNULL(up.District, N'') AS District,
+                ISNULL(d.EmailOptIn, 0) AS EmailOptIn,
+                ISNULL(d.SmsOptIn, 0) AS SmsOptIn,
+                ISNULL(d.PhoneOptIn, 0) AS PhoneOptIn
+            FROM dbo.Users u
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            LEFT JOIN dbo.UserAccountDetails d ON d.UserId = u.Id
+            WHERE up.UserName = @UserName OR u.Email = @UserName;
+            """;
+
+        const string billingSql = """
+            SELECT TOP 1
+                Id,
+                InvoiceType,
+                AddressTitle,
+                FullName,
+                ISNULL(IdentityNumber, N'') AS IdentityNumber,
+                ISNULL(TaxOffice, N'') AS TaxOffice,
+                ISNULL(TaxNumber, N'') AS TaxNumber,
+                Country,
+                City,
+                District,
+                ISNULL(Neighborhood, N'') AS Neighborhood,
+                ISNULL(PostalCode, N'') AS PostalCode,
+                PhoneNumber,
+                AddressLine,
+                IsDefault
+            FROM dbo.UserBillingAddresses
+            WHERE UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            ORDER BY IsDefault DESC, UpdatedAt DESC;
+            """;
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        UserAccountProfileDto? profile = null;
+
+        await using (var command = new SqlCommand(profileSql, connection))
+        {
+            command.Parameters.AddWithValue("@UserName", userName.Trim());
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                profile = new UserAccountProfileDto
+                {
+                    UserName = reader.GetString(0),
+                    AccountType = reader.GetString(1),
+                    FullName = reader.GetString(2),
+                    FirstName = reader.GetString(3),
+                    LastName = reader.GetString(4),
+                    Email = reader.GetString(5),
+                    MobilePhone = reader.GetString(6),
+                    WorkPhone = reader.GetString(7),
+                    NationalId = reader.GetString(8),
+                    IsForeignCitizen = reader.GetBoolean(9),
+                    BirthDate = reader.IsDBNull(10) ? null : reader.GetDateTime(10),
+                    Gender = reader.GetString(11),
+                    AddressLine = reader.GetString(12),
+                    PostalCode = reader.GetString(13),
+                    City = reader.GetString(14),
+                    District = reader.GetString(15),
+                    EmailOptIn = reader.GetBoolean(16),
+                    SmsOptIn = reader.GetBoolean(17),
+                    PhoneOptIn = reader.GetBoolean(18)
+                };
+            }
+        }
+
+        if (profile is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(profile.FullName))
+        {
+            profile.FullName = $"{profile.FirstName} {profile.LastName}".Trim();
+        }
+
+        await using (var command = new SqlCommand(billingSql, connection))
+        {
+            command.Parameters.AddWithValue("@UserName", userName.Trim());
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                profile.BillingAddress = new UserBillingAddressDto
+                {
+                    Id = reader.GetGuid(0),
+                    InvoiceType = reader.GetString(1),
+                    AddressTitle = reader.GetString(2),
+                    FullName = reader.GetString(3),
+                    IdentityNumber = reader.GetString(4),
+                    TaxOffice = reader.GetString(5),
+                    TaxNumber = reader.GetString(6),
+                    Country = reader.GetString(7),
+                    City = reader.GetString(8),
+                    District = reader.GetString(9),
+                    Neighborhood = reader.GetString(10),
+                    PostalCode = reader.GetString(11),
+                    PhoneNumber = reader.GetString(12),
+                    AddressLine = reader.GetString(13),
+                    IsDefault = reader.GetBoolean(14)
+                };
+            }
+        }
+
+        return profile;
+    }
+
+    public async Task<UserAccountProfileDto> UpsertUserAccountProfileAsync(string userName, UpdateUserAccountProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: false, cancellationToken);
+            var fullName = $"{request.FirstName.Trim()} {request.LastName.Trim()}".Trim();
+
+            const string updateUserSql = """
+                UPDATE dbo.Users
+                SET Email = @Email,
+                    PhoneNumber = @PhoneNumber,
+                    UpdatedAt = SYSUTCDATETIME()
+                WHERE Id = @UserId;
+                """;
+
+            await using (var command = new SqlCommand(updateUserSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@Email", request.Email.Trim());
+                command.Parameters.AddWithValue("@PhoneNumber", DbValue(request.MobilePhone));
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            const string upsertProfileSql = """
+                IF EXISTS (SELECT 1 FROM dbo.UserProfiles WHERE UserId = @UserId)
+                BEGIN
+                    UPDATE dbo.UserProfiles
+                    SET FullName = @FullName,
+                        City = @City,
+                        District = @District,
+                        AddressLine = @AddressLine,
+                        UpdatedAt = SYSUTCDATETIME()
+                    WHERE UserId = @UserId;
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO dbo.UserProfiles (UserId, UserName, FullName, City, District, AddressLine, CreatedAt, UpdatedAt)
+                    VALUES (@UserId, @UserName, @FullName, @City, @District, @AddressLine, SYSUTCDATETIME(), SYSUTCDATETIME());
+                END;
+                """;
+
+            await using (var command = new SqlCommand(upsertProfileSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@UserName", user.UserName);
+                command.Parameters.AddWithValue("@FullName", DbValue(fullName));
+                command.Parameters.AddWithValue("@City", DbValue(request.City));
+                command.Parameters.AddWithValue("@District", DbValue(request.District));
+                command.Parameters.AddWithValue("@AddressLine", DbValue(request.AddressLine));
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            const string upsertDetailsSql = """
+                IF EXISTS (SELECT 1 FROM dbo.UserAccountDetails WHERE UserId = @UserId)
+                BEGIN
+                    UPDATE dbo.UserAccountDetails
+                    SET FirstName = @FirstName,
+                        LastName = @LastName,
+                        NationalId = @NationalId,
+                        IsForeignCitizen = @IsForeignCitizen,
+                        BirthDate = @BirthDate,
+                        Gender = @Gender,
+                        MobilePhone = @MobilePhone,
+                        WorkPhone = @WorkPhone,
+                        PostalCode = @PostalCode,
+                        EmailOptIn = @EmailOptIn,
+                        SmsOptIn = @SmsOptIn,
+                        PhoneOptIn = @PhoneOptIn,
+                        UpdatedAt = SYSUTCDATETIME()
+                    WHERE UserId = @UserId;
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO dbo.UserAccountDetails
+                    (
+                        UserId, FirstName, LastName, NationalId, IsForeignCitizen, BirthDate, Gender, MobilePhone, WorkPhone,
+                        PostalCode, EmailOptIn, SmsOptIn, PhoneOptIn, CreatedAt, UpdatedAt
+                    )
+                    VALUES
+                    (
+                        @UserId, @FirstName, @LastName, @NationalId, @IsForeignCitizen, @BirthDate, @Gender, @MobilePhone, @WorkPhone,
+                        @PostalCode, @EmailOptIn, @SmsOptIn, @PhoneOptIn, SYSUTCDATETIME(), SYSUTCDATETIME()
+                    );
+                END;
+                """;
+
+            await using (var command = new SqlCommand(upsertDetailsSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@FirstName", DbValue(request.FirstName));
+                command.Parameters.AddWithValue("@LastName", DbValue(request.LastName));
+                command.Parameters.AddWithValue("@NationalId", DbValue(request.NationalId));
+                command.Parameters.AddWithValue("@IsForeignCitizen", request.IsForeignCitizen);
+                command.Parameters.AddWithValue("@BirthDate", request.BirthDate.HasValue ? request.BirthDate.Value.Date : DBNull.Value);
+                command.Parameters.AddWithValue("@Gender", request.Gender.Trim().ToLowerInvariant());
+                command.Parameters.AddWithValue("@MobilePhone", DbValue(request.MobilePhone));
+                command.Parameters.AddWithValue("@WorkPhone", DbValue(request.WorkPhone));
+                command.Parameters.AddWithValue("@PostalCode", DbValue(request.PostalCode));
+                command.Parameters.AddWithValue("@EmailOptIn", request.EmailOptIn);
+                command.Parameters.AddWithValue("@SmsOptIn", request.SmsOptIn);
+                command.Parameters.AddWithValue("@PhoneOptIn", request.PhoneOptIn);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return await GetUserAccountProfileAsync(userName, cancellationToken)
+                ?? throw new InvalidOperationException("Profil guncelleme sonrasi okunamadi.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<UserAccountProfileDto> UpsertUserBillingAddressAsync(string userName, UpsertUserBillingAddressRequest request, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: false, cancellationToken);
+
+            const string billingSql = """
+                DECLARE @BillingId UNIQUEIDENTIFIER = (
+                    SELECT TOP 1 Id
+                    FROM dbo.UserBillingAddresses
+                    WHERE UserId = @UserId
+                    ORDER BY IsDefault DESC, UpdatedAt DESC
+                );
+
+                IF @BillingId IS NULL
+                BEGIN
+                    INSERT INTO dbo.UserBillingAddresses
+                    (
+                        UserId, InvoiceType, AddressTitle, FullName, IdentityNumber, TaxOffice, TaxNumber,
+                        Country, City, District, Neighborhood, PostalCode, PhoneNumber, AddressLine, IsDefault, CreatedAt, UpdatedAt
+                    )
+                    VALUES
+                    (
+                        @UserId, @InvoiceType, @AddressTitle, @FullName, @IdentityNumber, @TaxOffice, @TaxNumber,
+                        @Country, @City, @District, @Neighborhood, @PostalCode, @PhoneNumber, @AddressLine, 1, SYSUTCDATETIME(), SYSUTCDATETIME()
+                    );
+                END
+                ELSE
+                BEGIN
+                    UPDATE dbo.UserBillingAddresses
+                    SET InvoiceType = @InvoiceType,
+                        AddressTitle = @AddressTitle,
+                        FullName = @FullName,
+                        IdentityNumber = @IdentityNumber,
+                        TaxOffice = @TaxOffice,
+                        TaxNumber = @TaxNumber,
+                        Country = @Country,
+                        City = @City,
+                        District = @District,
+                        Neighborhood = @Neighborhood,
+                        PostalCode = @PostalCode,
+                        PhoneNumber = @PhoneNumber,
+                        AddressLine = @AddressLine,
+                        IsDefault = 1,
+                        UpdatedAt = SYSUTCDATETIME()
+                    WHERE Id = @BillingId;
+                END;
+                """;
+
+            await using (var command = new SqlCommand(billingSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@InvoiceType", request.InvoiceType.Trim().ToLowerInvariant());
+                command.Parameters.AddWithValue("@AddressTitle", request.AddressTitle.Trim());
+                command.Parameters.AddWithValue("@FullName", request.FullName.Trim());
+                command.Parameters.AddWithValue("@IdentityNumber", DbValue(request.IdentityNumber));
+                command.Parameters.AddWithValue("@TaxOffice", DbValue(request.TaxOffice));
+                command.Parameters.AddWithValue("@TaxNumber", DbValue(request.TaxNumber));
+                command.Parameters.AddWithValue("@Country", request.Country.Trim());
+                command.Parameters.AddWithValue("@City", request.City.Trim());
+                command.Parameters.AddWithValue("@District", request.District.Trim());
+                command.Parameters.AddWithValue("@Neighborhood", DbValue(request.Neighborhood));
+                command.Parameters.AddWithValue("@PostalCode", DbValue(request.PostalCode));
+                command.Parameters.AddWithValue("@PhoneNumber", request.PhoneNumber.Trim());
+                command.Parameters.AddWithValue("@AddressLine", request.AddressLine.Trim());
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return await GetUserAccountProfileAsync(userName, cancellationToken)
+                ?? throw new InvalidOperationException("Fatura bilgisi guncelleme sonrasi okunamadi.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task ChangeUserPasswordAsync(string userName, ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: true, cancellationToken);
+            if (!VerifyPassword(request.CurrentPassword, user.PasswordHash))
+            {
+                throw new InvalidOperationException("Mevcut sifre dogrulanamadi.");
+            }
+
+            const string sql = """
+                UPDATE dbo.Users
+                SET PasswordHash = @PasswordHash,
+                    UpdatedAt = SYSUTCDATETIME()
+                WHERE Id = @UserId;
+                """;
+
+            await using var command = new SqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@UserId", user.UserId);
+            command.Parameters.AddWithValue("@PasswordHash", HashPassword(request.NewPassword));
+            await command.ExecuteNonQueryAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<IReadOnlyList<CustomerOrderDto>> GetCustomerOrdersAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT
+                o.Id,
+                o.OrderNumber,
+                o.OrderStatus,
+                o.PaymentMethod,
+                o.TotalAmount,
+                o.CurrencyCode,
+                o.InstallmentCount,
+                o.ItemCount,
+                o.OrderedAt,
+                o.DeliveredAt,
+                ISNULL(o.SummaryText, N'') AS SummaryText
+            FROM dbo.CustomerOrders o
+            WHERE o.UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            ORDER BY o.OrderedAt DESC;
+            """;
+
+        var orders = new List<CustomerOrderDto>();
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            orders.Add(new CustomerOrderDto
+            {
+                Id = reader.GetGuid(0),
+                OrderNumber = reader.GetString(1),
+                OrderStatus = reader.GetString(2),
+                PaymentMethod = reader.GetString(3),
+                TotalAmount = reader.GetDecimal(4),
+                CurrencyCode = reader.GetString(5).Trim(),
+                InstallmentCount = reader.GetInt32(6),
+                ItemCount = reader.GetInt32(7),
+                OrderedAt = new DateTimeOffset(reader.GetDateTime(8), TimeSpan.Zero),
+                DeliveredAt = reader.IsDBNull(9) ? null : new DateTimeOffset(reader.GetDateTime(9), TimeSpan.Zero),
+                SummaryText = reader.GetString(10)
+            });
+        }
+
+        return orders;
+    }
+
+    public async Task<AccountLedgerSummaryDto> GetAccountLedgerAsync(string userName, DateTime? startDate, DateTime? endDate, CancellationToken cancellationToken = default)
+    {
+        var sql = new StringBuilder("""
+            SELECT
+                Id,
+                EntryDate,
+                EntryType,
+                ISNULL(OrderNumber, N'') AS OrderNumber,
+                Description,
+                DebitAmount,
+                CreditAmount,
+                BalanceAfter,
+                ISNULL(PaymentMethod, N'') AS PaymentMethod,
+                ISNULL(ReceiptNumber, N'') AS ReceiptNumber
+            FROM dbo.AccountLedgerEntries
+            WHERE UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            """);
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand();
+        command.Connection = connection;
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+
+        if (startDate.HasValue)
+        {
+            sql.AppendLine(" AND EntryDate >= @StartDate");
+            command.Parameters.AddWithValue("@StartDate", startDate.Value.Date);
+        }
+
+        if (endDate.HasValue)
+        {
+            sql.AppendLine(" AND EntryDate < @EndDateExclusive");
+            command.Parameters.AddWithValue("@EndDateExclusive", endDate.Value.Date.AddDays(1));
+        }
+
+        sql.AppendLine(" ORDER BY EntryDate DESC, CreatedAt DESC;");
+        command.CommandText = sql.ToString();
+
+        var entries = new List<AccountLedgerEntryDto>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            entries.Add(new AccountLedgerEntryDto
+            {
+                Id = reader.GetGuid(0),
+                EntryDate = new DateTimeOffset(reader.GetDateTime(1), TimeSpan.Zero),
+                EntryType = reader.GetString(2),
+                OrderNumber = reader.GetString(3),
+                Description = reader.GetString(4),
+                DebitAmount = reader.GetDecimal(5),
+                CreditAmount = reader.GetDecimal(6),
+                BalanceAfter = reader.GetDecimal(7),
+                PaymentMethod = reader.GetString(8),
+                ReceiptNumber = reader.GetString(9)
+            });
+        }
+
+        return new AccountLedgerSummaryDto
+        {
+            Entries = entries,
+            TotalDebit = entries.Sum(x => x.DebitAmount),
+            TotalCredit = entries.Sum(x => x.CreditAmount),
+            CurrentBalance = entries.OrderByDescending(x => x.EntryDate).FirstOrDefault()?.BalanceAfter ?? 0
+        };
+    }
+
+    public async Task<PaymentResultDto> CreateAccountLedgerPaymentAsync(string userName, CreateAccountLedgerPaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        var gateway = paymentGatewayRouter.Resolve();
+        var successUrl = paymentGatewayRouter.GetSuccessUrl(request.SuccessUrl);
+        var cancelUrl = paymentGatewayRouter.GetCancelUrl(request.CancelUrl);
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: false, cancellationToken);
+            var paymentId = Guid.NewGuid();
+            var providerName = gateway.ProviderName;
+            var providerTransactionId = string.Empty;
+            var checkoutUrl = string.Empty;
+            var paymentStatus = "paid";
+            DateTimeOffset? paidAt = DateTimeOffset.UtcNow;
+
+            if (string.Equals(providerName, "stripe", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(successUrl) || string.IsNullOrWhiteSpace(cancelUrl))
+                {
+                    throw new InvalidOperationException("Odeme donus URL ayarlari eksik.");
+                }
+
+                var session = await gateway.CreateCustomCheckoutAsync(new GenericPaymentCheckoutRequest
+                {
+                    PaymentId = paymentId,
+                    UserName = userName,
+                    ItemName = "Cari hesap odemesi",
+                    Description = request.Description.Trim(),
+                    PaymentType = "commission",
+                    Amount = request.Amount,
+                    CurrencyCode = "TRY",
+                    SuccessUrl = successUrl,
+                    CancelUrl = cancelUrl
+                }, cancellationToken);
+
+                providerTransactionId = session.ProviderTransactionId;
+                checkoutUrl = session.CheckoutUrl;
+                paymentStatus = "pending";
+                paidAt = null;
+            }
+            else
+            {
+                providerTransactionId = paymentId.ToString("N");
+            }
+
+            const string paymentSql = """
+                INSERT INTO dbo.Payments
+                (
+                    Id, UserId, PackageId, ListingId, PaymentType, Amount, CurrencyCode, PaymentStatus, ProviderName, ProviderTransactionId, PaidAt, CreatedAt
+                )
+                VALUES
+                (
+                    @Id, @UserId, NULL, NULL, N'commission', @Amount, N'TRY', @PaymentStatus, @ProviderName, @ProviderTransactionId, @PaidAt, SYSUTCDATETIME()
+                );
+                """;
+
+            await using (var command = new SqlCommand(paymentSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@Id", paymentId);
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@Amount", request.Amount);
+                command.Parameters.AddWithValue("@PaymentStatus", paymentStatus);
+                command.Parameters.AddWithValue("@ProviderName", providerName);
+                command.Parameters.AddWithValue("@ProviderTransactionId", providerTransactionId);
+                command.Parameters.AddWithValue("@PaidAt", paidAt.HasValue ? paidAt.Value.UtcDateTime : DBNull.Value);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            if (paymentStatus == "paid")
+            {
+                await InsertLedgerCreditAsync(connection, transaction, user.UserId, paymentId, request.Amount, request.Description, "Kredi Karti", cancellationToken);
+                await InsertNotificationAsync(connection, transaction, user.UserId, "ledger.payment.completed", "Cari odeme alindi", "Cari hesap odemeniz kayda alindi.", "payment", paymentId, cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return new PaymentResultDto
+            {
+                PaymentId = paymentId,
+                PaymentStatus = paymentStatus,
+                Amount = request.Amount,
+                CurrencyCode = "TRY",
+                ProviderName = providerName,
+                CheckoutUrl = checkoutUrl,
+                Message = paymentStatus == "pending"
+                    ? "Guvenli odeme oturumu olusturuldu."
+                    : "Cari hesap odemeniz kayda alindi."
+            };
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<IReadOnlyList<FavoriteListingDto>> GetFavoritesAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT
+                f.ListingId,
+                p.Title,
+                c.Name AS CategoryName,
+                sm.ModeKey,
+                l.Price,
+                l.CurrencyCode,
+                ISNULL(up.UserName, u.Email) AS SellerName,
+                l.ListingStatus,
+                f.CreatedAt
+            FROM dbo.Favorites f
+            INNER JOIN dbo.Listings l ON l.Id = f.ListingId
+            INNER JOIN dbo.Products p ON p.Id = l.ProductId
+            INNER JOIN dbo.Categories c ON c.Id = p.CategoryId
+            INNER JOIN dbo.SaleModes sm ON sm.Id = l.SaleModeId
+            INNER JOIN dbo.Users u ON u.Id = l.SellerUserId
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            WHERE f.UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            ORDER BY f.CreatedAt DESC;
+            """;
+
+        var items = new List<FavoriteListingDto>();
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new FavoriteListingDto
+            {
+                ListingId = reader.GetGuid(0),
+                Title = reader.GetString(1),
+                Category = reader.GetString(2),
+                SaleMode = reader.GetString(3),
+                Price = reader.GetDecimal(4),
+                CurrencyCode = reader.GetString(5).Trim(),
+                SellerName = reader.GetString(6),
+                ListingStatus = reader.GetString(7),
+                FavoritedAt = new DateTimeOffset(reader.GetDateTime(8), TimeSpan.Zero)
+            });
+        }
+
+        return items;
+    }
+
+    public async Task<bool> AddFavoriteAsync(string userName, Guid listingId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: false, cancellationToken);
+            const string sql = """
+                IF NOT EXISTS (SELECT 1 FROM dbo.Favorites WHERE UserId = @UserId AND ListingId = @ListingId)
+                BEGIN
+                    INSERT INTO dbo.Favorites (UserId, ListingId, CreatedAt)
+                    VALUES (@UserId, @ListingId, SYSUTCDATETIME());
+                END;
+                """;
+            await using var command = new SqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@UserId", user.UserId);
+            command.Parameters.AddWithValue("@ListingId", listingId);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveFavoriteAsync(string userName, Guid listingId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            DELETE FROM dbo.Favorites
+            WHERE UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            AND ListingId = @ListingId;
+            """;
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        command.Parameters.AddWithValue("@ListingId", listingId);
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+    }
+
+    public async Task<IReadOnlyList<StockAlertDto>> GetStockAlertsAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT
+                sa.Id,
+                sa.ListingId,
+                p.Title,
+                ISNULL(up.UserName, u.Email) AS SellerName,
+                ISNULL(sa.Note, N'') AS Note,
+                sa.IsActive,
+                sa.CreatedAt
+            FROM dbo.StockAlerts sa
+            INNER JOIN dbo.Listings l ON l.Id = sa.ListingId
+            INNER JOIN dbo.Products p ON p.Id = l.ProductId
+            INNER JOIN dbo.Users u ON u.Id = l.SellerUserId
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            WHERE sa.UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            ORDER BY sa.CreatedAt DESC;
+            """;
+
+        var items = new List<StockAlertDto>();
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new StockAlertDto
+            {
+                Id = reader.GetGuid(0),
+                ListingId = reader.GetGuid(1),
+                ListingTitle = reader.GetString(2),
+                SellerName = reader.GetString(3),
+                Note = reader.GetString(4),
+                IsActive = reader.GetBoolean(5),
+                CreatedAt = new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero)
+            });
+        }
+
+        return items;
+    }
+
+    public async Task<StockAlertDto> AddStockAlertAsync(string userName, AddStockAlertRequest request, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: false, cancellationToken);
+            var alertId = Guid.NewGuid();
+            const string insertSql = """
+                INSERT INTO dbo.StockAlerts (Id, UserId, ListingId, Note, IsActive, CreatedAt)
+                VALUES (@Id, @UserId, @ListingId, @Note, 1, SYSUTCDATETIME());
+                """;
+            await using (var command = new SqlCommand(insertSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@Id", alertId);
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@ListingId", request.ListingId);
+                command.Parameters.AddWithValue("@Note", DbValue(request.Note));
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return (await GetStockAlertsAsync(userName, cancellationToken)).First(x => x.Id == alertId);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveStockAlertAsync(string userName, Guid alertId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            DELETE FROM dbo.StockAlerts
+            WHERE Id = @AlertId
+              AND UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            );
+            """;
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@AlertId", alertId);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+    }
+
+    public async Task<IReadOnlyList<PriceAlertDto>> GetPriceAlertsAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT
+                pa.Id,
+                pa.ListingId,
+                p.Title,
+                ISNULL(up.UserName, u.Email) AS SellerName,
+                pa.TargetPrice,
+                pa.CurrentPriceSnapshot,
+                pa.CurrencyCode,
+                pa.IsActive,
+                pa.CreatedAt
+            FROM dbo.PriceAlerts pa
+            INNER JOIN dbo.Listings l ON l.Id = pa.ListingId
+            INNER JOIN dbo.Products p ON p.Id = l.ProductId
+            INNER JOIN dbo.Users u ON u.Id = l.SellerUserId
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            WHERE pa.UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            )
+            ORDER BY pa.CreatedAt DESC;
+            """;
+
+        var items = new List<PriceAlertDto>();
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new PriceAlertDto
+            {
+                Id = reader.GetGuid(0),
+                ListingId = reader.GetGuid(1),
+                ListingTitle = reader.GetString(2),
+                SellerName = reader.GetString(3),
+                TargetPrice = reader.GetDecimal(4),
+                CurrentPrice = reader.GetDecimal(5),
+                CurrencyCode = reader.GetString(6).Trim(),
+                IsActive = reader.GetBoolean(7),
+                CreatedAt = new DateTimeOffset(reader.GetDateTime(8), TimeSpan.Zero)
+            });
+        }
+
+        return items;
+    }
+
+    public async Task<PriceAlertDto> AddPriceAlertAsync(string userName, AddPriceAlertRequest request, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await ResolveUserAccountAsync(connection, transaction, userName, includePasswordHash: false, cancellationToken);
+            decimal currentPrice;
+            string currencyCode;
+
+            const string listingSql = """
+                SELECT TOP 1 Price, CurrencyCode
+                FROM dbo.Listings
+                WHERE Id = @ListingId;
+                """;
+            await using (var command = new SqlCommand(listingSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@ListingId", request.ListingId);
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                if (!await reader.ReadAsync(cancellationToken))
+                {
+                    throw new InvalidOperationException("Ilan bulunamadi.");
+                }
+
+                currentPrice = reader.GetDecimal(0);
+                currencyCode = reader.GetString(1).Trim();
+            }
+
+            var alertId = Guid.NewGuid();
+            const string insertSql = """
+                INSERT INTO dbo.PriceAlerts (Id, UserId, ListingId, TargetPrice, CurrentPriceSnapshot, CurrencyCode, IsActive, CreatedAt)
+                VALUES (@Id, @UserId, @ListingId, @TargetPrice, @CurrentPriceSnapshot, @CurrencyCode, 1, SYSUTCDATETIME());
+                """;
+            await using (var command = new SqlCommand(insertSql, connection, transaction))
+            {
+                command.Parameters.AddWithValue("@Id", alertId);
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.Parameters.AddWithValue("@ListingId", request.ListingId);
+                command.Parameters.AddWithValue("@TargetPrice", request.TargetPrice);
+                command.Parameters.AddWithValue("@CurrentPriceSnapshot", currentPrice);
+                command.Parameters.AddWithValue("@CurrencyCode", currencyCode);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return (await GetPriceAlertsAsync(userName, cancellationToken)).First(x => x.Id == alertId);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemovePriceAlertAsync(string userName, Guid alertId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            DELETE FROM dbo.PriceAlerts
+            WHERE Id = @AlertId
+              AND UserId = (
+                SELECT TOP 1 u.Id
+                FROM dbo.Users u
+                LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+                WHERE up.UserName = @UserName OR u.Email = @UserName
+            );
+            """;
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@AlertId", alertId);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
     public async Task<IReadOnlyList<ListingDto>> GetListingsAsync(string? categorySlug, string? saleModeKey, CancellationToken cancellationToken = default)
@@ -2665,6 +3610,99 @@ public sealed class MarketplaceRepository
                 throw;
             }
         }
+    }
+
+    private static object DbValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
+
+    private static async Task InsertLedgerCreditAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        Guid userId,
+        Guid paymentId,
+        decimal amount,
+        string description,
+        string paymentMethod,
+        CancellationToken cancellationToken)
+    {
+        decimal previousBalance = 0;
+        await using (var lastBalanceCommand = new SqlCommand("""
+            SELECT TOP 1 BalanceAfter
+            FROM dbo.AccountLedgerEntries
+            WHERE UserId = @UserId
+            ORDER BY EntryDate DESC, CreatedAt DESC;
+            """, connection, transaction))
+        {
+            lastBalanceCommand.Parameters.AddWithValue("@UserId", userId);
+            var result = await lastBalanceCommand.ExecuteScalarAsync(cancellationToken);
+            if (result is decimal decimalBalance)
+            {
+                previousBalance = decimalBalance;
+            }
+        }
+
+        var newBalance = previousBalance - amount;
+        await using var command = new SqlCommand("""
+            INSERT INTO dbo.AccountLedgerEntries
+            (
+                Id, UserId, RelatedOrderId, RelatedPaymentId, EntryDate, EntryType, OrderNumber, Description,
+                DebitAmount, CreditAmount, BalanceAfter, PaymentMethod, ReceiptNumber, CreatedAt
+            )
+            VALUES
+            (
+                @Id, @UserId, NULL, @PaymentId, SYSUTCDATETIME(), N'credit', NULL, @Description,
+                0, @CreditAmount, @BalanceAfter, @PaymentMethod, @ReceiptNumber, SYSUTCDATETIME()
+            );
+            """, connection, transaction);
+        command.Parameters.AddWithValue("@Id", Guid.NewGuid());
+        command.Parameters.AddWithValue("@UserId", userId);
+        command.Parameters.AddWithValue("@PaymentId", paymentId);
+        command.Parameters.AddWithValue("@Description", description);
+        command.Parameters.AddWithValue("@CreditAmount", amount);
+        command.Parameters.AddWithValue("@BalanceAfter", newBalance);
+        command.Parameters.AddWithValue("@PaymentMethod", paymentMethod);
+        command.Parameters.AddWithValue("@ReceiptNumber", $"CR-{paymentId.ToString("N")[..8].ToUpperInvariant()}");
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<(Guid UserId, string UserName, string AccountType, string Email, string PasswordHash)> ResolveUserAccountAsync(
+        SqlConnection connection,
+        SqlTransaction? transaction,
+        string userName,
+        bool includePasswordHash,
+        CancellationToken cancellationToken)
+    {
+        var sql = new StringBuilder("""
+            SELECT TOP 1
+                u.Id,
+                ISNULL(up.UserName, u.Email) AS UserName,
+                u.AccountType,
+                u.Email
+            """);
+
+        sql.AppendLine(includePasswordHash
+            ? ", u.PasswordHash"
+            : ", CAST(N'' AS NVARCHAR(512)) AS PasswordHash");
+        sql.AppendLine("""
+            FROM dbo.Users u
+            LEFT JOIN dbo.UserProfiles up ON up.UserId = u.Id
+            WHERE up.UserName = @UserName OR u.Email = @UserName;
+            """);
+
+        await using var command = new SqlCommand(sql.ToString(), connection, transaction);
+        command.Parameters.AddWithValue("@UserName", userName.Trim());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            throw new InvalidOperationException("Kullanici bulunamadi.");
+        }
+
+        return (
+            reader.GetGuid(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.GetString(3),
+            reader.GetString(4));
     }
 
     private static string HashPassword(string password)

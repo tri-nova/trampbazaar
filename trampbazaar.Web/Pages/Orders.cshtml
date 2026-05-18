@@ -1,0 +1,38 @@
+@page
+@model trampbazaar.Web.Pages.OrdersModel
+@{
+    ViewData["Title"] = "Siparislerim";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Hesap Modulu</p>
+        <h1>Siparislerim</h1>
+        <p class="muted-copy">Geçmis siparis, teslimat ve odeme ozetlerini buradan izleyin.</p>
+    </div>
+</section>
+
+<section class="detail-panel">
+    @if (Model.Orders.Count == 0)
+    {
+        <p class="muted-copy">Henuz siparis kaydi bulunmuyor.</p>
+    }
+    else
+    {
+        <div class="payment-list">
+        @foreach (var order in Model.Orders)
+        {
+            <article class="detail-card payment-card">
+                <span>@order.OrderNumber</span>
+                <strong>@order.TotalAmount.ToString("N0") @order.CurrencyCode</strong>
+                <p>Durum: <span class="status-pill status-success">@order.OrderStatus</span></p>
+                <p>Odeme: @order.PaymentMethod / @order.InstallmentCount taksit</p>
+                <p>Kalem: @order.ItemCount</p>
+                <p>@order.SummaryText</p>
+                <p class="muted-copy">@order.OrderedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+            </article>
+        }
+        </div>
+    }
+</section>
+

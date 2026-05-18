@@ -76,6 +76,118 @@ public sealed class MarketplaceWebApiClient(HttpClient httpClient, IHttpContextA
     public async Task<UserAccountDashboardDto?> GetAccountDashboardAsync(CancellationToken cancellationToken = default)
         => await GetFromJsonAuthorizedAsync<UserAccountDashboardDto>(ApiRoutes.Account, cancellationToken);
 
+    public async Task<UserAccountProfileDto?> GetAccountProfileAsync(CancellationToken cancellationToken = default)
+        => await GetFromJsonAuthorizedAsync<UserAccountProfileDto>(ApiRoutes.AccountProfile, cancellationToken);
+
+    public async Task<(bool IsSuccess, string? ErrorMessage, UserAccountProfileDto? Profile)> UpdateAccountProfileAsync(UpdateUserAccountProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await PutAsJsonAuthorizedAsync(ApiRoutes.AccountProfile, request, cancellationToken);
+        var profile = response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<UserAccountProfileDto>(cancellationToken: cancellationToken)
+            : null;
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken), profile);
+    }
+
+    public async Task<(bool IsSuccess, string? ErrorMessage, UserAccountProfileDto? Profile)> UpdateBillingAddressAsync(UpsertUserBillingAddressRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await PutAsJsonAuthorizedAsync(ApiRoutes.AccountBillingAddress, request, cancellationToken);
+        var profile = response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<UserAccountProfileDto>(cancellationToken: cancellationToken)
+            : null;
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken), profile);
+    }
+
+    public async Task<(bool IsSuccess, string? ErrorMessage)> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await PostAsJsonAuthorizedAsync(ApiRoutes.AccountPassword, request, cancellationToken);
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<CustomerOrderDto>> GetAccountOrdersAsync(CancellationToken cancellationToken = default)
+        => await GetFromJsonAuthorizedAsync<List<CustomerOrderDto>>(ApiRoutes.AccountOrders, cancellationToken) ?? [];
+
+    public async Task<AccountLedgerSummaryDto?> GetAccountLedgerAsync(DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default)
+    {
+        var route = ApiRoutes.AccountLedger;
+        var query = new List<string>();
+        if (startDate.HasValue)
+        {
+            query.Add($"startDate={Uri.EscapeDataString(startDate.Value.ToString("yyyy-MM-dd"))}");
+        }
+
+        if (endDate.HasValue)
+        {
+            query.Add($"endDate={Uri.EscapeDataString(endDate.Value.ToString("yyyy-MM-dd"))}");
+        }
+
+        if (query.Count > 0)
+        {
+            route = $"{route}?{string.Join("&", query)}";
+        }
+
+        return await GetFromJsonAuthorizedAsync<AccountLedgerSummaryDto>(route, cancellationToken);
+    }
+
+    public async Task<(bool IsSuccess, string? ErrorMessage, PaymentResultDto? Result)> CreateAccountLedgerPaymentAsync(CreateAccountLedgerPaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await PostAsJsonAuthorizedAsync(ApiRoutes.AccountLedgerPayments, request, cancellationToken);
+        var result = response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<PaymentResultDto>(cancellationToken: cancellationToken)
+            : null;
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken), result);
+    }
+
+    public async Task<IReadOnlyList<FavoriteListingDto>> GetFavoritesAsync(CancellationToken cancellationToken = default)
+        => await GetFromJsonAuthorizedAsync<List<FavoriteListingDto>>(ApiRoutes.AccountFavorites, cancellationToken) ?? [];
+
+    public async Task<(bool IsSuccess, string? ErrorMessage)> AddFavoriteAsync(Guid listingId, CancellationToken cancellationToken = default)
+    {
+        using var response = await PostAuthorizedAsync(ApiRoutes.AccountFavoriteByListingId(listingId), cancellationToken);
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken));
+    }
+
+    public async Task<(bool IsSuccess, string? ErrorMessage)> RemoveFavoriteAsync(Guid listingId, CancellationToken cancellationToken = default)
+    {
+        using var response = await DeleteAuthorizedAsync(ApiRoutes.AccountFavoriteByListingId(listingId), cancellationToken);
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<StockAlertDto>> GetStockAlertsAsync(CancellationToken cancellationToken = default)
+        => await GetFromJsonAuthorizedAsync<List<StockAlertDto>>(ApiRoutes.AccountStockAlerts, cancellationToken) ?? [];
+
+    public async Task<(bool IsSuccess, string? ErrorMessage, StockAlertDto? Alert)> AddStockAlertAsync(AddStockAlertRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await PostAsJsonAuthorizedAsync(ApiRoutes.AccountStockAlerts, request, cancellationToken);
+        var result = response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<StockAlertDto>(cancellationToken: cancellationToken)
+            : null;
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken), result);
+    }
+
+    public async Task<(bool IsSuccess, string? ErrorMessage)> RemoveStockAlertAsync(Guid alertId, CancellationToken cancellationToken = default)
+    {
+        using var response = await DeleteAuthorizedAsync(ApiRoutes.AccountStockAlertById(alertId), cancellationToken);
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<PriceAlertDto>> GetPriceAlertsAsync(CancellationToken cancellationToken = default)
+        => await GetFromJsonAuthorizedAsync<List<PriceAlertDto>>(ApiRoutes.AccountPriceAlerts, cancellationToken) ?? [];
+
+    public async Task<(bool IsSuccess, string? ErrorMessage, PriceAlertDto? Alert)> AddPriceAlertAsync(AddPriceAlertRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await PostAsJsonAuthorizedAsync(ApiRoutes.AccountPriceAlerts, request, cancellationToken);
+        var result = response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<PriceAlertDto>(cancellationToken: cancellationToken)
+            : null;
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken), result);
+    }
+
+    public async Task<(bool IsSuccess, string? ErrorMessage)> RemovePriceAlertAsync(Guid alertId, CancellationToken cancellationToken = default)
+    {
+        using var response = await DeleteAuthorizedAsync(ApiRoutes.AccountPriceAlertById(alertId), cancellationToken);
+        return (response.IsSuccessStatusCode, await TryReadErrorAsync(response, cancellationToken));
+    }
+
     public async Task<ListingDto?> CreateListingAsync(CreateListingRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await PostAsJsonAuthorizedAsync(ApiRoutes.Listings, request, cancellationToken);
@@ -170,9 +282,22 @@ public sealed class MarketplaceWebApiClient(HttpClient httpClient, IHttpContextA
         return await httpClient.SendAsync(request, cancellationToken);
     }
 
+    private async Task<HttpResponseMessage> PutAsJsonAuthorizedAsync<T>(string route, T payload, CancellationToken cancellationToken)
+    {
+        var request = CreateAuthorizedRequest(HttpMethod.Put, route);
+        request.Content = JsonContent.Create(payload);
+        return await httpClient.SendAsync(request, cancellationToken);
+    }
+
     private async Task<HttpResponseMessage> PostAuthorizedAsync(string route, CancellationToken cancellationToken)
     {
         var request = CreateAuthorizedRequest(HttpMethod.Post, route);
+        return await httpClient.SendAsync(request, cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> DeleteAuthorizedAsync(string route, CancellationToken cancellationToken)
+    {
+        var request = CreateAuthorizedRequest(HttpMethod.Delete, route);
         return await httpClient.SendAsync(request, cancellationToken);
     }
 

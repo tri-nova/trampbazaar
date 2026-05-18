@@ -14,11 +14,11 @@
     <form method="post" class="stack-form">
         <label>
             E-posta
-            <input asp-for="Email" type="email" />
+            <input asp-for="Email" type="email" autocomplete="email" />
         </label>
         <label>
             Sifre
-            <input asp-for="Password" type="password" />
+            <input asp-for="Password" type="password" autocomplete="current-password" />
         </label>
         <button type="submit" class="primary-link button-like">Giris Yap</button>
     </form>

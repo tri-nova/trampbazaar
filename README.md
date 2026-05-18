@@ -45,10 +45,14 @@ Run SQL scripts in order:
 2. [002_listing_offers.sql](./Database/SqlServer/002_listing_offers.sql)
 3. [003_grant_admin_role.sql](./Database/SqlServer/003_grant_admin_role.sql)
 4. [004_schema_versioning.sql](./Database/SqlServer/004_schema_versioning.sql)
+5. [005_account_profile_and_billing.sql](./Database/SqlServer/005_account_profile_and_billing.sql)
+6. [006_customer_account_modules.sql](./Database/SqlServer/006_customer_account_modules.sql)
+7. [007_schema_tracking_and_performance.sql](./Database/SqlServer/007_schema_tracking_and_performance.sql)
+8. [008_support_procedures.sql](./Database/SqlServer/008_support_procedures.sql)
 
 ### 2. API configuration
 
-Edit [appsettings.Development.json](./trampbazaar.Api/appsettings.Development.json).
+Create `trampbazaar.Api/appsettings.Development.Local.json` by copying [appsettings.Local.example.json](./trampbazaar.Api/appsettings.Local.example.json), or set environment variables.
 
 Required keys:
 
@@ -79,6 +83,11 @@ Edit:
 
 Set `Api:BaseUrl` to your API address.
 
+For local overrides without committing values:
+
+- copy [trampbazaar.Web/appsettings.Local.example.json](./trampbazaar.Web/appsettings.Local.example.json) to `trampbazaar.Web/appsettings.Development.Local.json`
+- copy [trampbazaar.AdminWeb/appsettings.Local.example.json](./trampbazaar.AdminWeb/appsettings.Local.example.json) to `trampbazaar.AdminWeb/appsettings.Development.Local.json`
+
 ## Running locally
 
 API:
@@ -103,6 +112,12 @@ Tests:
 
 ```bash
 dotnet test trampbazaar.Tests/trampbazaar.Tests.csproj
+```
+
+Release publish bundle:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\publish-server.ps1
 ```
 
 Health checks:
@@ -218,6 +233,10 @@ Release notes:
 
 - [docs/mobile-release.md](./docs/mobile-release.md)
 - [docs/stripe-production.md](./docs/stripe-production.md)
+- [docs/production-rollout.md](./docs/production-rollout.md)
+- [docs/demo-checklist.md](./docs/demo-checklist.md)
+- [docs/demo-accounts.md](./docs/demo-accounts.md)
+- [docs/demo-talk-track.md](./docs/demo-talk-track.md)
 
 Container workflow:
 
@@ -257,6 +276,21 @@ Optional:
 - `TB_ADMIN_ORIGIN`
 - `TB_INTERNAL_API_BASE_URL`
 
+Database automation:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\run-db-migrations.ps1 -ConnectionString "Server=tcp:HOST,1433;Database=TrampBazaar;User Id=...;Password=...;Encrypt=True;TrustServerCertificate=False"
+```
+
+Post-deploy smoke test:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\server-smoke-test.ps1 `
+  -ApiBaseUrl "https://api.example.com" `
+  -WebBaseUrl "https://app.example.com" `
+  -AdminBaseUrl "https://admin.example.com"
+```
+
 ## Registry publishing
 
 The repository includes a GHCR publishing workflow for:
@@ -275,4 +309,5 @@ On GitHub-hosted runs it uses the built-in `GITHUB_TOKEN`. Make sure package wri
 - Keep `Payments:Provider=demo` in non-payment environments.
 - Use `/health/live` for load balancer or container liveness probes.
 - Prefer environment variables or secret stores over server-local JSON files in production.
+- For development, keep secrets in `appsettings.Development.Local.json` or `TB_*` environment variables, not in committed `appsettings.Development.json`.
 - Follow [docs/stripe-production.md](./docs/stripe-production.md) before enabling live Stripe traffic.

@@ -21,9 +21,15 @@ public sealed class LoginModel(MarketplaceWebApiClient apiClient) : PageModel
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
+        {
+            ErrorMessage = "E-posta ve sifre zorunludur.";
+            return Page();
+        }
+
         var result = await apiClient.LoginAsync(new LoginRequestDto
         {
-            Email = Email,
+            Email = Email.Trim(),
             Password = Password
         }, cancellationToken);
 

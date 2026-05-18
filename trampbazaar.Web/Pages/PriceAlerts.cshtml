@@ -1,0 +1,35 @@
+@page
+@model trampbazaar.Web.Pages.PriceAlertsModel
+@{
+    ViewData["Title"] = "Fiyat Alarm Listem";
+}
+
+<section class="page-header"><div><p class="eyebrow">Hesap Modulu</p><h1>Fiyat Alarm Listem</h1></div></section>
+<section class="detail-panel">
+    <form method="post" asp-page-handler="Add" class="stack-form">
+        <label>Ilan
+            <select asp-for="AlertForm.ListingId">
+                @foreach (var listing in Model.Listings)
+                {
+                    <option value="@listing.Id">@listing.Title - @listing.Price.ToString("N0") @listing.Currency</option>
+                }
+            </select>
+        </label>
+        <label>Hedef Fiyat<input asp-for="AlertForm.TargetPrice" type="number" step="0.01" /></label>
+        <button type="submit" class="secondary-link button-like">Alarm Ekle</button>
+    </form>
+    <div class="payment-list" style="margin-top:20px;">
+    @foreach (var item in Model.Alerts)
+    {
+        <article class="detail-card payment-card">
+            <span>@item.SellerName</span>
+            <strong>@item.ListingTitle</strong>
+            <p>Hedef: @item.TargetPrice.ToString("N0") @item.CurrencyCode / Guncel: @item.CurrentPrice.ToString("N0") @item.CurrencyCode</p>
+            <form method="post" asp-page-handler="Remove" asp-route-alertId="@item.Id">
+                <button type="submit" class="nav-button">Alarmi Kaldir</button>
+            </form>
+        </article>
+    }
+    </div>
+</section>
+

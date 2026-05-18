@@ -1,0 +1,33 @@
+@page
+@model trampbazaar.Web.Pages.AccountPaymentModel
+@{
+    ViewData["Title"] = "Kredi Karti ile Odeme";
+}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Guvenli Odeme</p>
+        <h1>Kredi Karti ile Odeme</h1>
+        <p class="muted-copy">Kart bilgisi sunucuda tutulmaz. Canli ortamda odeme, guvenli odeme saglayicisina yonlendirilir.</p>
+    </div>
+</section>
+
+<section class="account-editor-grid">
+    <article class="account-panel">
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="flash-message flash-error">@Model.ErrorMessage</div>
+        }
+        <form method="post" class="stack-form">
+            <label>Odeme Tutari<input asp-for="PaymentForm.Amount" type="number" step="0.01" /></label>
+            <label>Aciklama<textarea asp-for="PaymentForm.Description"></textarea></label>
+            <button type="submit" class="account-primary-button">Guvenli Odeme Oturumu Baslat</button>
+        </form>
+    </article>
+    <article class="account-panel">
+        <h2>Odeme Ozetiniz</h2>
+        <p class="muted-copy">Mevcut bakiye: <strong>@Model.Ledger.CurrentBalance.ToString("N2") TRY</strong></p>
+        <p class="muted-copy">Bu ekran ham kart verisi almaz. Uygun odeme saglayicisi uzerinden hosted checkout acilir.</p>
+    </article>
+</section>
+

@@ -68,8 +68,227 @@ internal static class BrowserSmokeTestStubs
                         }
                     ]
                 }),
+                ("GET", "/api/account/profile") when HasBearer(request, "user-token") => StubApiResponse.Json(HttpStatusCode.OK, new UserAccountProfileDto
+                {
+                    UserName = "batu",
+                    AccountType = "individual",
+                    FullName = "Batu Yildiz",
+                    FirstName = "Batu",
+                    LastName = "Yildiz",
+                    Email = "batu@example.com",
+                    MobilePhone = "05050000000",
+                    City = "Istanbul",
+                    District = "Kadikoy",
+                    EmailOptIn = true,
+                    SmsOptIn = true,
+                    BillingAddress = new UserBillingAddressDto
+                    {
+                        InvoiceType = "individual",
+                        AddressTitle = "Merkez",
+                        FullName = "Batu Yildiz",
+                        Country = "Turkiye",
+                        City = "Istanbul",
+                        District = "Kadikoy",
+                        PhoneNumber = "05050000000",
+                        AddressLine = "Demo adres"
+                    }
+                }),
                 _ => StubApiResponse.Json(HttpStatusCode.NotFound, new { error = "not found" })
             });
+        });
+    }
+
+    public static StubApiServer CreateWebRegistrationApiStub()
+    {
+        return StubApiServer.Start(async request =>
+        {
+            var path = request.Url?.AbsolutePath ?? "/";
+            return (request.HttpMethod, path) switch
+            {
+                ("POST", "/api/auth/register") => await ReadRegisterResponseAsync(request),
+                ("GET", "/api/dashboard") => StubApiResponse.Json(HttpStatusCode.OK, new DashboardResponse
+                {
+                    PlatformName = "TrampBazaar",
+                    IsDataAvailable = true
+                }),
+                _ => StubApiResponse.Json(HttpStatusCode.NotFound, new { error = "not found" })
+            };
+        });
+    }
+
+    public static StubApiServer CreateWebAccountProfileApiStub()
+    {
+        var profile = new UserAccountProfileDto
+        {
+            UserName = "batu",
+            AccountType = "individual",
+            FullName = "Batu Yildiz",
+            FirstName = "Batu",
+            LastName = "Yildiz",
+            Email = "batu@example.com",
+            MobilePhone = "05050000000",
+            City = "Ankara",
+            District = "Cankaya",
+            BillingAddress = new UserBillingAddressDto
+            {
+                InvoiceType = "individual",
+                AddressTitle = "Merkez",
+                FullName = "Batu Yildiz",
+                Country = "Turkiye",
+                City = "Ankara",
+                District = "Cankaya",
+                PhoneNumber = "05050000000",
+                AddressLine = "Demo adres"
+            }
+        };
+
+        return StubApiServer.Start(async request =>
+        {
+            var path = request.Url?.AbsolutePath ?? "/";
+            return (request.HttpMethod, path) switch
+            {
+                ("POST", "/api/auth/login") => StubApiResponse.Json(HttpStatusCode.OK, new AuthResponseDto
+                {
+                    IsSuccess = true,
+                    UserName = "batu",
+                    RoleName = "user",
+                    AccessToken = "user-token"
+                }),
+                ("GET", "/api/account") when HasBearer(request, "user-token") => StubApiResponse.Json(HttpStatusCode.OK, new UserAccountDashboardDto
+                {
+                    UserName = "batu",
+                    AccountType = "individual",
+                    ListingCount = 2,
+                    ActiveListingCount = 1,
+                    UnreadNotificationCount = 1,
+                    PaymentCount = 1,
+                    TotalPaidAmount = 1499
+                }),
+                ("GET", "/api/account/profile") when HasBearer(request, "user-token") => StubApiResponse.Json(HttpStatusCode.OK, profile),
+                ("PUT", "/api/account/profile") when HasBearer(request, "user-token") => await UpdateAccountProfileAsync(request, profile),
+                _ => StubApiResponse.Json(HttpStatusCode.NotFound, new { error = "not found" })
+            };
+        });
+    }
+
+    public static StubApiServer CreateWebCustomerModulesApiStub()
+    {
+        var listingOneId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+        var listingTwoId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        var stockAlertId = Guid.Parse("21212121-2121-2121-2121-212121212121");
+        var priceAlertId = Guid.Parse("23232323-2323-2323-2323-232323232323");
+
+        var listings = new List<ListingDto>
+        {
+            new()
+            {
+                Id = listingOneId,
+                Title = "Retro Kamera",
+                Price = 3250,
+                Currency = "TRY",
+                SellerName = "Ayse Demir",
+                Category = "Koleksiyon",
+                SaleMode = "Dogrudan",
+                Status = "published"
+            },
+            new()
+            {
+                Id = listingTwoId,
+                Title = "Vintage Pikap",
+                Price = 1500,
+                Currency = "TRY",
+                SellerName = "Ayse Demir",
+                Category = "Hobi",
+                SaleMode = "Acik Artirma",
+                Status = "published"
+            }
+        };
+
+        var favorites = new List<FavoriteListingDto>
+        {
+            new()
+            {
+                ListingId = listingOneId,
+                Title = "Retro Kamera",
+                Category = "Koleksiyon",
+                SellerName = "Ayse Demir",
+                Price = 3250,
+                CurrencyCode = "TRY"
+            }
+        };
+
+        var stockAlerts = new List<StockAlertDto>();
+        var priceAlerts = new List<PriceAlertDto>();
+
+        return StubApiServer.Start(request =>
+        {
+            var path = request.Url?.AbsolutePath ?? "/";
+            return (request.HttpMethod, path) switch
+            {
+                ("POST", "/api/auth/login") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, new AuthResponseDto
+                {
+                    IsSuccess = true,
+                    UserName = "batu",
+                    RoleName = "user",
+                    AccessToken = "user-token"
+                })),
+                ("GET", "/api/account") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, new UserAccountDashboardDto
+                {
+                    UserName = "batu",
+                    AccountType = "individual"
+                })),
+                ("GET", "/api/account/orders") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, new[]
+                {
+                    new CustomerOrderDto
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderNumber = "TS0906263",
+                        OrderStatus = "Teslim Edildi",
+                        PaymentMethod = "Kredi Karti",
+                        InstallmentCount = 3,
+                        TotalAmount = 25000,
+                        CurrencyCode = "TRY",
+                        ItemCount = 1,
+                        SummaryText = "Retro Kamera siparisi tamamlandi.",
+                        OrderedAt = DateTimeOffset.UtcNow.AddDays(-14)
+                    }
+                })),
+                ("GET", "/api/account/ledger") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, new AccountLedgerSummaryDto
+                {
+                    CurrentBalance = 91583.10m,
+                    TotalDebit = 91733m,
+                    TotalCredit = 149.90m,
+                    Entries =
+                    [
+                        new AccountLedgerEntryDto
+                        {
+                            EntryDate = DateTimeOffset.UtcNow.AddDays(-14),
+                            OrderNumber = "TS0906263",
+                            Description = "Retro Kamera siparis borcu",
+                            PaymentMethod = "Kredi Karti",
+                            DebitAmount = 25000,
+                            CreditAmount = 0,
+                            BalanceAfter = 25000
+                        }
+                    ]
+                })),
+                ("POST", "/api/account/ledger/payments") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, new PaymentResultDto
+                {
+                    PaymentId = Guid.NewGuid(),
+                    CheckoutUrl = "/PaymentSuccess?paymentId=44444444-4444-4444-4444-444444444444"
+                })),
+                ("GET", "/api/listings") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, listings)),
+                ("GET", "/api/account/favorites") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, favorites)),
+                ("POST", var favoriteAddPath) when favoriteAddPath.StartsWith("/api/account/favorites/", StringComparison.Ordinal) && HasBearer(request, "user-token") => AddFavoriteAsync(favoriteAddPath, listings, favorites),
+                ("DELETE", var favoriteDeletePath) when favoriteDeletePath.StartsWith("/api/account/favorites/", StringComparison.Ordinal) && HasBearer(request, "user-token") => RemoveFavoriteAsync(favoriteDeletePath, favorites),
+                ("GET", "/api/account/stock-alerts") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, stockAlerts)),
+                ("POST", "/api/account/stock-alerts") when HasBearer(request, "user-token") => AddStockAlertAsync(request, listings, stockAlerts, stockAlertId),
+                ("DELETE", var stockDeletePath) when stockDeletePath.StartsWith("/api/account/stock-alerts/", StringComparison.Ordinal) && HasBearer(request, "user-token") => RemoveStockAlertAsync(stockDeletePath, stockAlerts),
+                ("GET", "/api/account/price-alerts") when HasBearer(request, "user-token") => Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, priceAlerts)),
+                ("POST", "/api/account/price-alerts") when HasBearer(request, "user-token") => AddPriceAlertAsync(request, listings, priceAlerts, priceAlertId),
+                ("DELETE", var priceDeletePath) when priceDeletePath.StartsWith("/api/account/price-alerts/", StringComparison.Ordinal) && HasBearer(request, "user-token") => RemovePriceAlertAsync(priceDeletePath, priceAlerts),
+                _ => Task.FromResult(StubApiResponse.Json(HttpStatusCode.NotFound, new { error = "not found" }))
+            };
         });
     }
 
@@ -847,6 +1066,143 @@ internal static class BrowserSmokeTestStubs
         complaint.AssignedAdminUserName = payload.AssignedAdminUserName ?? complaint.AssignedAdminUserName;
         complaint.UpdatedAt = DateTimeOffset.UtcNow;
         return StubApiResponse.Json(HttpStatusCode.OK, new { ok = true });
+    }
+
+    private static async Task<StubApiResponse> ReadRegisterResponseAsync(HttpListenerRequest request)
+    {
+        var payload = await JsonSerializer.DeserializeAsync<RegisterRequestDto>(request.InputStream, WebJsonOptions, CancellationToken.None);
+        if (payload is null ||
+            string.IsNullOrWhiteSpace(payload.FullName) ||
+            string.IsNullOrWhiteSpace(payload.UserName) ||
+            string.IsNullOrWhiteSpace(payload.Email) ||
+            string.IsNullOrWhiteSpace(payload.Password))
+        {
+            return StubApiResponse.Json(HttpStatusCode.BadRequest, new AuthResponseDto
+            {
+                IsSuccess = false,
+                Message = "Tum alanlar zorunludur."
+            });
+        }
+
+        return StubApiResponse.Json(HttpStatusCode.OK, new AuthResponseDto
+        {
+            IsSuccess = true,
+            Message = "Kayit basarili.",
+            UserName = payload.UserName,
+            RoleName = payload.AccountType == "corporate" ? "CorporateUser" : "User",
+            AccessToken = "new-user-token"
+        });
+    }
+
+    private static async Task<StubApiResponse> UpdateAccountProfileAsync(HttpListenerRequest request, UserAccountProfileDto profile)
+    {
+        var payload = await JsonSerializer.DeserializeAsync<UpdateUserAccountProfileRequest>(request.InputStream, WebJsonOptions, CancellationToken.None);
+        if (payload is null)
+        {
+            return StubApiResponse.Json(HttpStatusCode.BadRequest, new { error = "invalid profile" });
+        }
+
+        profile.FirstName = payload.FirstName;
+        profile.LastName = payload.LastName;
+        profile.FullName = $"{payload.FirstName} {payload.LastName}".Trim();
+        profile.Email = payload.Email;
+        profile.MobilePhone = payload.MobilePhone;
+        profile.WorkPhone = payload.WorkPhone;
+        profile.NationalId = payload.NationalId;
+        profile.IsForeignCitizen = payload.IsForeignCitizen;
+        profile.BirthDate = payload.BirthDate;
+        profile.Gender = payload.Gender;
+        profile.AddressLine = payload.AddressLine;
+        profile.PostalCode = payload.PostalCode;
+        profile.City = payload.City;
+        profile.District = payload.District;
+        profile.EmailOptIn = payload.EmailOptIn;
+        profile.SmsOptIn = payload.SmsOptIn;
+        profile.PhoneOptIn = payload.PhoneOptIn;
+
+        return StubApiResponse.Json(HttpStatusCode.OK, profile);
+    }
+
+    private static Task<StubApiResponse> AddFavoriteAsync(string path, IReadOnlyList<ListingDto> listings, List<FavoriteListingDto> favorites)
+    {
+        var listingId = Guid.Parse(path.Split('/')[^1]);
+        var listing = listings.Single(x => x.Id == listingId);
+        if (favorites.All(x => x.ListingId != listingId))
+        {
+            favorites.Add(new FavoriteListingDto
+            {
+                ListingId = listingId,
+                Title = listing.Title,
+                Category = listing.Category,
+                SellerName = listing.SellerName,
+                SaleMode = listing.SaleMode,
+                ListingStatus = listing.Status,
+                FavoritedAt = DateTimeOffset.UtcNow,
+                Price = listing.Price,
+                CurrencyCode = listing.Currency
+            });
+        }
+
+        return Task.FromResult(StubApiResponse.Json(HttpStatusCode.OK, favorites.Single(x => x.ListingId == listingId)));
+    }
+
+    private static Task<StubApiResponse> RemoveFavoriteAsync(string path, List<FavoriteListingDto> favorites)
+    {
+        var listingId = Guid.Parse(path.Split('/')[^1]);
+        favorites.RemoveAll(x => x.ListingId == listingId);
+        return Task.FromResult(StubApiResponse.Json(HttpStatusCode.NoContent, new { }));
+    }
+
+    private static async Task<StubApiResponse> AddStockAlertAsync(HttpListenerRequest request, IReadOnlyList<ListingDto> listings, List<StockAlertDto> stockAlerts, Guid fallbackId)
+    {
+        var payload = await JsonSerializer.DeserializeAsync<AddStockAlertRequest>(request.InputStream, WebJsonOptions);
+        var listing = listings.Single(x => x.Id == payload!.ListingId);
+        var created = new StockAlertDto
+        {
+            Id = fallbackId == Guid.Empty ? Guid.NewGuid() : fallbackId,
+            ListingId = listing.Id,
+            ListingTitle = listing.Title,
+            SellerName = listing.SellerName,
+            Note = payload.Note ?? string.Empty,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        stockAlerts.Add(created);
+        return StubApiResponse.Json(HttpStatusCode.OK, created);
+    }
+
+    private static Task<StubApiResponse> RemoveStockAlertAsync(string path, List<StockAlertDto> stockAlerts)
+    {
+        var alertId = Guid.Parse(path.Split('/')[^1]);
+        stockAlerts.RemoveAll(x => x.Id == alertId);
+        return Task.FromResult(StubApiResponse.Json(HttpStatusCode.NoContent, new { }));
+    }
+
+    private static async Task<StubApiResponse> AddPriceAlertAsync(HttpListenerRequest request, IReadOnlyList<ListingDto> listings, List<PriceAlertDto> priceAlerts, Guid fallbackId)
+    {
+        var payload = await JsonSerializer.DeserializeAsync<AddPriceAlertRequest>(request.InputStream, WebJsonOptions);
+        var listing = listings.Single(x => x.Id == payload!.ListingId);
+        var created = new PriceAlertDto
+        {
+            Id = fallbackId == Guid.Empty ? Guid.NewGuid() : fallbackId,
+            ListingId = listing.Id,
+            ListingTitle = listing.Title,
+            SellerName = listing.SellerName,
+            TargetPrice = payload.TargetPrice,
+            CurrentPrice = listing.Price,
+            CurrencyCode = listing.Currency,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        priceAlerts.Add(created);
+        return StubApiResponse.Json(HttpStatusCode.OK, created);
+    }
+
+    private static Task<StubApiResponse> RemovePriceAlertAsync(string path, List<PriceAlertDto> priceAlerts)
+    {
+        var alertId = Guid.Parse(path.Split('/')[^1]);
+        priceAlerts.RemoveAll(x => x.Id == alertId);
+        return Task.FromResult(StubApiResponse.Json(HttpStatusCode.NoContent, new { }));
     }
 
     private static bool HasBearer(HttpListenerRequest request, string token)

@@ -4,107 +4,349 @@
     ViewData["Title"] = "Hesabim";
 }
 
-<section class="page-header">
-    <div>
-        <p class="eyebrow">Kullanici Alani</p>
-        <h1>Hesabim</h1>
-        <p class="muted-copy">Ilanlarinizi, bildirim yogunlugunu ve satin alma gecmisinizi tek yerde izleyin.</p>
-    </div>
-</section>
+<section class="account-shell">
+    <aside class="account-sidebar">
+        <article class="account-identity-card">
+            <div class="account-avatar">@(!string.IsNullOrWhiteSpace(Model.Profile.FirstName) ? Model.Profile.FirstName[0] : (Model.Account.UserName.Length > 0 ? Model.Account.UserName[0] : 'U'))</div>
+            <h2>@(string.IsNullOrWhiteSpace(Model.Profile.FullName) ? Model.Account.UserName : Model.Profile.FullName)</h2>
+            <p>@Model.Profile.Email</p>
+            <p class="account-tier">@Model.Account.AccountType</p>
+            <span class="account-chip">Hesabim</span>
+        </article>
 
-<section class="stats-grid">
-    <article class="stat-card">
-        <span>Kullanici</span>
-        <strong>@Model.Account.UserName</strong>
-    </article>
-    <article class="stat-card">
-        <span>Hesap Tipi</span>
-        <strong>@Model.Account.AccountType</strong>
-    </article>
-    <article class="stat-card">
-        <span>Aktif Ilan</span>
-        <strong>@Model.Account.ActiveListingCount / @Model.Account.ListingCount</strong>
-    </article>
-    <article class="stat-card">
-        <span>Okunmamis Bildirim</span>
-        <strong>@Model.Account.UnreadNotificationCount</strong>
-    </article>
-</section>
+        <nav class="account-side-nav">
+            <a class="account-side-link account-side-link-active" asp-page="/Account">Kisisel Bilgilerim</a>
+            <a class="account-side-link" asp-page="/Orders">Siparislerim</a>
+            <a class="account-side-link" asp-page="/Ledger">Cari Hareketler</a>
+            <a class="account-side-link" asp-page="/AccountPayment">Kredi Karti ile Odeme</a>
+            <a class="account-side-link" asp-page="/Favorites">Favorilerim</a>
+            <a class="account-side-link" asp-page="/StockAlerts">Stok Alarm Listem</a>
+            <a class="account-side-link" asp-page="/PriceAlerts">Fiyat Alarm Listem</a>
+            <a class="account-side-link" asp-page="/Conversations">Mesajlarim</a>
+            <a class="account-side-link" asp-page="/Notifications">Bildirimler</a>
+            <a class="account-side-link" asp-page="/Packages">Paketlerim</a>
+            <a class="account-side-link" asp-page="/Listings">Ilanlarim</a>
+            <form method="post" asp-page="/Logout" class="account-side-form">
+                <button type="submit" class="account-side-button">Cikis</button>
+            </form>
+        </nav>
+    </aside>
 
-<section class="detail-grid account-grid">
-    <article class="detail-card">
-        <span>Toplam Satin Alma</span>
-        <strong>@Model.Account.PaymentCount</strong>
-    </article>
-    <article class="detail-card">
-        <span>Toplam Odeme</span>
-        <strong>@Model.Account.TotalPaidAmount.ToString("N0") TRY</strong>
-    </article>
-    <article class="detail-card">
-        <span>Hizli Erisim</span>
-        <a class="secondary-link" asp-page="/CreateListing">Yeni Ilan Ver</a>
-    </article>
-    <article class="detail-card">
-        <span>Mesajlar</span>
-        <a class="secondary-link" asp-page="/Conversations">Konusmalara Git</a>
-    </article>
-</section>
-
-<section class="detail-panel">
-    <div class="panel-head">
-        <div>
-            <p class="eyebrow">Son Ilanlar</p>
-            <h2>Ilanlarim</h2>
-        </div>
-        <a class="secondary-link" asp-page="/CreateListing">Yeni Ilan</a>
-    </div>
-
-    @if (Model.Account.RecentListings.Count == 0)
-    {
-        <p class="muted-copy">Henuz size ait ilan bulunmuyor.</p>
-    }
-    else
-    {
-        <section class="listing-grid compact-grid">
-        @foreach (var listing in Model.Account.RecentListings)
-        {
-            <a class="listing-card" asp-page="/ListingDetail" asp-route-listingId="@listing.Id">
-                <span class="listing-meta">@listing.Category</span>
-                <h2>@listing.Title</h2>
-                <p>Durum: @listing.Status</p>
-                <strong>@listing.Price.ToString("N0") @listing.Currency</strong>
-            </a>
-        }
+    <div class="account-main">
+        <section class="page-header">
+            <div>
+                <p class="eyebrow">Kullanici Alani</p>
+                <h1>Hesabim</h1>
+                <p class="muted-copy">Uyelik, iletisim ve fatura bilgilerinizi tek yerden yonetin.</p>
+            </div>
         </section>
-    }
-</section>
 
-<section class="detail-panel">
-    <div class="panel-head">
-        <div>
-            <p class="eyebrow">Odeme Akisi</p>
-            <h2>Son Satin Almalar</h2>
-        </div>
-        <a class="secondary-link" asp-page="/Packages">Paketler</a>
-    </div>
-
-    @if (Model.Account.RecentPayments.Count == 0)
-    {
-        <p class="muted-copy">Henuz satin alma kaydi bulunmuyor.</p>
-    }
-    else
-    {
-        <div class="payment-list">
-        @foreach (var payment in Model.Account.RecentPayments)
-        {
-            <article class="detail-card payment-card">
-                <span>@payment.PackageName</span>
-                <strong>@payment.Amount.ToString("N0") @payment.CurrencyCode</strong>
-                <p>Tip: @payment.PaymentType</p>
-                <p>Durum: <span class="status-pill @(payment.PaymentStatus == "paid" ? "status-success" : payment.PaymentStatus == "pending" ? "status-pending" : "status-danger")">@payment.PaymentStatus</span></p>
-                <p class="muted-copy">@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+        <section class="account-dashboard-strip">
+            <article class="account-metric-card">
+                <span>Aktif Ilan</span>
+                <strong>@Model.Account.ActiveListingCount / @Model.Account.ListingCount</strong>
             </article>
+            <article class="account-metric-card">
+                <span>Okunmamis Bildirim</span>
+                <strong>@Model.Account.UnreadNotificationCount</strong>
+            </article>
+            <article class="account-metric-card">
+                <span>Toplam Satin Alma</span>
+                <strong>@Model.Account.PaymentCount</strong>
+            </article>
+            <article class="account-metric-card">
+                <span>Toplam Odeme</span>
+                <strong>@Model.Account.TotalPaidAmount.ToString("N0") TRY</strong>
+            </article>
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(Model.FlashSuccess))
+        {
+            <div class="flash-message flash-success">@Model.FlashSuccess</div>
         }
-        </div>
-    }
+
+        @if (!string.IsNullOrWhiteSpace(Model.FlashError))
+        {
+            <div class="flash-message flash-error">@Model.FlashError</div>
+        }
+
+        <section class="account-editor-grid">
+            <article class="account-panel">
+                <div class="account-panel-head">
+                    <div>
+                        <p class="eyebrow">Uyelik Bilgileri</p>
+                        <h1>Profil ve iletisim</h1>
+                    </div>
+                </div>
+
+                <form method="post" asp-page-handler="Profile" class="stack-form">
+                    <div class="account-field-grid">
+                        <label>
+                            Ad
+                            <input asp-for="ProfileForm.FirstName" autocomplete="given-name" />
+                        </label>
+                        <label>
+                            Soyad
+                            <input asp-for="ProfileForm.LastName" autocomplete="family-name" />
+                        </label>
+                    </div>
+
+                    <div class="account-field-grid">
+                        <label>
+                            T.C. Kimlik No
+                            <input asp-for="ProfileForm.NationalId" inputmode="numeric" />
+                        </label>
+                        <label class="account-checkbox-row">
+                            <input asp-for="ProfileForm.IsForeignCitizen" />
+                            <span>T.C. uyruklu degilim</span>
+                        </label>
+                    </div>
+
+                    <div class="account-field-grid">
+                        <label>
+                            Dogum Tarihi
+                            <input asp-for="ProfileForm.BirthDate" type="date" />
+                        </label>
+                        <label>
+                            Cinsiyet
+                            <select asp-for="ProfileForm.Gender">
+                                <option value="unspecified">Belirtmek istemiyorum</option>
+                                <option value="male">Erkek</option>
+                                <option value="female">Kadin</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="account-field-grid">
+                        <label>
+                            Cep Telefonu
+                            <input asp-for="ProfileForm.MobilePhone" autocomplete="tel" />
+                        </label>
+                        <label>
+                            Is Telefonu
+                            <input asp-for="ProfileForm.WorkPhone" autocomplete="tel" />
+                        </label>
+                    </div>
+
+                    <label>
+                        E-posta Adresi
+                        <input asp-for="ProfileForm.Email" type="email" autocomplete="email" />
+                    </label>
+
+                    <label>
+                        Adres
+                        <textarea asp-for="ProfileForm.AddressLine"></textarea>
+                    </label>
+
+                    <div class="account-field-grid account-field-grid-third">
+                        <label>
+                            Posta Kodu
+                            <input asp-for="ProfileForm.PostalCode" />
+                        </label>
+                        <label>
+                            Il
+                            <input asp-for="ProfileForm.City" />
+                        </label>
+                        <label>
+                            Ilce
+                            <input asp-for="ProfileForm.District" />
+                        </label>
+                    </div>
+
+                    <section class="account-subpanel">
+                        <h2>Bildirim ve Sozlesme Ayarlari</h2>
+                        <label class="account-checkbox-row">
+                            <input asp-for="ProfileForm.EmailOptIn" />
+                            <span>Bilgilendirme e-postalari almak istiyorum.</span>
+                        </label>
+                        <label class="account-checkbox-row">
+                            <input asp-for="ProfileForm.SmsOptIn" />
+                            <span>Bilgilendirme SMS'leri almak istiyorum.</span>
+                        </label>
+                        <label class="account-checkbox-row">
+                            <input asp-for="ProfileForm.PhoneOptIn" />
+                            <span>Bilgilendirme aramalari almak istiyorum.</span>
+                        </label>
+                    </section>
+
+                    <button type="submit" class="account-primary-button">Uyelik Bilgilerini Guncelle</button>
+                </form>
+            </article>
+
+            <div class="account-stack">
+                <article class="account-panel">
+                    <div class="account-panel-head">
+                        <div>
+                            <p class="eyebrow">Fatura Bilgileri</p>
+                            <h2>Varsayilan fatura adresi</h2>
+                        </div>
+                    </div>
+
+                    <form method="post" asp-page-handler="Billing" class="stack-form">
+                        <div class="account-field-grid">
+                            <label>
+                                Fatura Turu
+                                <select asp-for="BillingForm.InvoiceType">
+                                    <option value="individual">Bireysel</option>
+                                    <option value="corporate">Kurumsal</option>
+                                </select>
+                            </label>
+                            <label>
+                                Adres Basligi
+                                <input asp-for="BillingForm.AddressTitle" />
+                            </label>
+                        </div>
+
+                        <div class="account-field-grid">
+                            <label>
+                                Ad Soyad / Firma Unvani
+                                <input asp-for="BillingForm.FullName" />
+                            </label>
+                            <label>
+                                T.C. Kimlik No
+                                <input asp-for="BillingForm.IdentityNumber" />
+                            </label>
+                        </div>
+
+                        <div class="account-field-grid">
+                            <label>
+                                Vergi Dairesi
+                                <input asp-for="BillingForm.TaxOffice" />
+                            </label>
+                            <label>
+                                Vergi Numarasi
+                                <input asp-for="BillingForm.TaxNumber" />
+                            </label>
+                        </div>
+
+                        <div class="account-field-grid account-field-grid-third">
+                            <label>
+                                Ulke
+                                <input asp-for="BillingForm.Country" />
+                            </label>
+                            <label>
+                                Il
+                                <input asp-for="BillingForm.City" />
+                            </label>
+                            <label>
+                                Ilce
+                                <input asp-for="BillingForm.District" />
+                            </label>
+                        </div>
+
+                        <div class="account-field-grid">
+                            <label>
+                                Semt / Mahalle
+                                <input asp-for="BillingForm.Neighborhood" />
+                            </label>
+                            <label>
+                                Telefon
+                                <input asp-for="BillingForm.PhoneNumber" autocomplete="tel" />
+                            </label>
+                        </div>
+
+                        <div class="account-field-grid">
+                            <label>
+                                Posta Kodu
+                                <input asp-for="BillingForm.PostalCode" />
+                            </label>
+                            <span></span>
+                        </div>
+
+                        <label>
+                            Acik Adres
+                            <textarea asp-for="BillingForm.AddressLine"></textarea>
+                        </label>
+
+                        <button type="submit" class="account-primary-button">Fatura Bilgilerini Guncelle</button>
+                    </form>
+                </article>
+
+                <article class="account-panel">
+                    <div class="account-panel-head">
+                        <div>
+                            <p class="eyebrow">Sifre Bilgileri</p>
+                            <h2>Oturum guvenligi</h2>
+                        </div>
+                    </div>
+
+                    <form method="post" asp-page-handler="Password" class="stack-form">
+                        <label>
+                            Mevcut Sifre
+                            <input asp-for="PasswordForm.CurrentPassword" type="password" autocomplete="current-password" />
+                        </label>
+                        <label>
+                            Yeni Sifre
+                            <input asp-for="PasswordForm.NewPassword" type="password" autocomplete="new-password" />
+                        </label>
+                        <label>
+                            Yeni Sifre Tekrar
+                            <input asp-for="PasswordForm.ConfirmPassword" type="password" autocomplete="new-password" />
+                        </label>
+
+                        <button type="submit" class="account-primary-button">Sifreyi Guncelle</button>
+                    </form>
+                </article>
+            </div>
+        </section>
+
+        <section class="detail-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="eyebrow">Son Ilanlar</p>
+                    <h2>Ilanlarim</h2>
+                </div>
+                <a class="secondary-link" asp-page="/CreateListing">Yeni Ilan</a>
+            </div>
+
+            @if (Model.Account.RecentListings.Count == 0)
+            {
+                <p class="muted-copy">Henuz size ait ilan bulunmuyor.</p>
+            }
+            else
+            {
+                <section class="listing-grid compact-grid">
+                @foreach (var listing in Model.Account.RecentListings)
+                {
+                    <a class="listing-card" asp-page="/ListingDetail" asp-route-listingId="@listing.Id">
+                        <span class="listing-meta">@listing.Category</span>
+                        <h2>@listing.Title</h2>
+                        <p>Durum: @listing.Status</p>
+                        <strong>@listing.Price.ToString("N0") @listing.Currency</strong>
+                    </a>
+                }
+                </section>
+            }
+        </section>
+
+        <section class="detail-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="eyebrow">Odeme Akisi</p>
+                    <h2>Son Satin Almalar</h2>
+                </div>
+                <a class="secondary-link" asp-page="/Packages">Paketler</a>
+            </div>
+
+            @if (Model.Account.RecentPayments.Count == 0)
+            {
+                <p class="muted-copy">Henuz satin alma kaydi bulunmuyor.</p>
+            }
+            else
+            {
+                <div class="payment-list">
+                @foreach (var payment in Model.Account.RecentPayments)
+                {
+                    <article class="detail-card payment-card">
+                        <span>@payment.PackageName</span>
+                        <strong>@payment.Amount.ToString("N0") @payment.CurrencyCode</strong>
+                        <p>Tip: @payment.PaymentType</p>
+                        <p>Durum: <span class="status-pill @(payment.PaymentStatus == "paid" ? "status-success" : payment.PaymentStatus == "pending" ? "status-pending" : "status-danger")">@payment.PaymentStatus</span></p>
+                        <p class="muted-copy">@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+                    </article>
+                }
+                </div>
+            }
+        </section>
+    </div>
 </section>

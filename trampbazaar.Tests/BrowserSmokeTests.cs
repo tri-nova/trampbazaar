@@ -54,6 +54,109 @@ public sealed class BrowserSmokeTests
     }
 
     [Fact]
+    public async Task WebRegister_RedirectsToHome_WithAuthenticatedSession_InRealBrowser()
+    {
+        await using var apiStub = BrowserSmokeTestStubs.CreateWebRegistrationApiStub();
+        await using var webHost = await StartWebHostAsync(apiStub.BaseUrl);
+        await using var session = await LaunchBrowserAsync();
+
+        var page = await session.Browser.NewPageAsync();
+        await page.GotoAsync($"{webHost.BaseUrl}/Register", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+        await page.GetByLabel("Ad soyad").FillAsync("Demo Gercek");
+        await page.GetByLabel("Kullanici adi").FillAsync("demo_gercek");
+        await page.GetByLabel("Hesap tipi").SelectOptionAsync("corporate");
+        await page.GetByLabel("E-posta").FillAsync("demo_gercek@example.com");
+        await page.GetByLabel("Sifre", new() { Exact = true }).FillAsync("Password123!");
+        await page.GetByLabel("Sifre tekrar").FillAsync("Password123!");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Kayit Ol" }).ClickAsync();
+
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex(".*/$|.*/Index$"));
+        await Assertions.Expect(page.GetByText("demo_gercek", new() { Exact = true })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task WebAccountProfile_CanUpdateContactFields_InRealBrowser()
+    {
+        await using var apiStub = BrowserSmokeTestStubs.CreateWebAccountProfileApiStub();
+        await using var webHost = await StartWebHostAsync(apiStub.BaseUrl);
+        await using var session = await LaunchBrowserAsync();
+
+        var page = await session.Browser.NewPageAsync();
+        await LoginWebAsync(page, webHost.BaseUrl);
+
+        await page.GotoAsync($"{webHost.BaseUrl}/Account", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.GetByRole(AriaRole.Textbox, new() { Name = "Ad", Exact = true }).FillAsync("Baturay");
+        await page.GetByRole(AriaRole.Textbox, new() { Name = "Soyad", Exact = true }).FillAsync("Oztekin");
+        await page.GetByRole(AriaRole.Textbox, new() { Name = "E-posta Adresi", Exact = true }).FillAsync("batu@makparsan.com");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Uyelik Bilgilerini Guncelle" }).ClickAsync();
+
+        await Assertions.Expect(page.GetByText("Uyelik ve iletisim bilgileri guncellendi.", new() { Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(page.GetByRole(AriaRole.Textbox, new() { Name = "Ad", Exact = true })).ToHaveValueAsync("Baturay");
+        await Assertions.Expect(page.GetByRole(AriaRole.Textbox, new() { Name = "E-posta Adresi", Exact = true })).ToHaveValueAsync("batu@makparsan.com");
+    }
+
+    [Fact]
+    public async Task WebCustomerModules_RenderAndMutate_InRealBrowser()
+    {
+        await using var apiStub = BrowserSmokeTestStubs.CreateWebCustomerModulesApiStub();
+        await using var webHost = await StartWebHostAsync(apiStub.BaseUrl);
+        await using var session = await LaunchBrowserAsync();
+
+        var page = await session.Browser.NewPageAsync();
+        await LoginWebAsync(page, webHost.BaseUrl);
+
+        await page.GotoAsync($"{webHost.BaseUrl}/Orders", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Siparislerim" })).ToBeVisibleAsync();
+        await Assertions.Expect(page.GetByText("TS0906263", new() { Exact = true })).ToBeVisibleAsync();
+
+        await page.GotoAsync($"{webHost.BaseUrl}/Ledger", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Cari Hareketler" })).ToBeVisibleAsync();
+        await Assertions.Expect(page.GetByText("Retro Kamera siparis borcu", new() { Exact = true })).ToBeVisibleAsync();
+
+        await page.GotoAsync($"{webHost.BaseUrl}/Favorites", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.GetByLabel("Yeni favori ekle").SelectOptionAsync(new[] { "77777777-7777-7777-7777-777777777777" });
+        await page.GetByRole(AriaRole.Button, new() { Name = "Favoriye Ekle" }).ClickAsync();
+        await Assertions.Expect(page.GetByText("Vintage Pikap", new() { Exact = true })).ToBeVisibleAsync();
+
+        await page.GotoAsync($"{webHost.BaseUrl}/StockAlerts", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.GetByLabel("Ilan").SelectOptionAsync(new[] { "77777777-7777-7777-7777-777777777777" });
+        await page.GetByLabel("Not").FillAsync("Firsat olursa haber verin");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Alarm Ekle" }).ClickAsync();
+        await Assertions.Expect(page.GetByText("Firsat olursa haber verin", new() { Exact = true })).ToBeVisibleAsync();
+
+        await page.GotoAsync($"{webHost.BaseUrl}/PriceAlerts", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.GetByLabel("Ilan").SelectOptionAsync(new[] { "55555555-5555-5555-5555-555555555555" });
+        await page.GetByLabel("Hedef Fiyat").FillAsync("2900");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Alarm Ekle" }).ClickAsync();
+        await Assertions.Expect(page.GetByText("Hedef:", new() { Exact = false })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task WebAccountPayment_StartsHostedCheckoutSession_InRealBrowser()
+    {
+        await using var apiStub = BrowserSmokeTestStubs.CreateWebCustomerModulesApiStub();
+        await using var webHost = await StartWebHostAsync(apiStub.BaseUrl);
+        await using var session = await LaunchBrowserAsync();
+
+        var page = await session.Browser.NewPageAsync();
+        await LoginWebAsync(page, webHost.BaseUrl);
+
+        await page.GotoAsync($"{webHost.BaseUrl}/AccountPayment", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Kredi Karti ile Odeme" })).ToBeVisibleAsync();
+
+        var navigation = page.WaitForURLAsync("**/PaymentSuccess?paymentId=*", new PageWaitForURLOptions
+        {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.GetByLabel("Odeme Tutari").FillAsync("500");
+        await page.GetByLabel("Aciklama").FillAsync("Cari kapama");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Guvenli Odeme Oturumu Baslat" }).ClickAsync();
+        await navigation;
+        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Odeme islemi tamamlandi." })).ToBeVisibleAsync();
+    }
+
+    [Fact]
     public async Task WebPackages_ShowsLoginCallToAction_WhenAnonymous_InRealBrowser()
     {
         await using var apiStub = BrowserSmokeTestStubs.CreateWebPackagesApiStub();

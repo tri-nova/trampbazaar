@@ -4,8 +4,11 @@
 		<MobileTargetFrameworks>net9.0-ios;net9.0-maccatalyst</MobileTargetFrameworks>
 		<AndroidSdkRoot Condition="'$(AndroidSdkDirectory)' != ''">$(AndroidSdkDirectory)</AndroidSdkRoot>
 		<AndroidSdkRoot Condition="'$(AndroidSdkRoot)' == '' And $([MSBuild]::IsOSPlatform('windows'))">$(LocalAppData)\Android\Sdk</AndroidSdkRoot>
-		<AndroidPlatformJar>$(AndroidSdkRoot)\platforms\android-35\android.jar</AndroidPlatformJar>
-		<MobileTargetFrameworks Condition="Exists('$(AndroidPlatformJar)')">net9.0-android;$(MobileTargetFrameworks)</MobileTargetFrameworks>
+		<AndroidPlatformJar35>$(AndroidSdkRoot)\platforms\android-35\android.jar</AndroidPlatformJar35>
+		<AndroidPlatformJar36>$(AndroidSdkRoot)\platforms\android-36\android.jar</AndroidPlatformJar36>
+		<AndroidTargetFramework Condition="Exists('$(AndroidPlatformJar35)')">net9.0-android35.0</AndroidTargetFramework>
+		<AndroidTargetFramework Condition="'$(AndroidTargetFramework)' == '' And Exists('$(AndroidPlatformJar36)')">net9.0-android36.0</AndroidTargetFramework>
+		<MobileTargetFrameworks Condition="'$(AndroidTargetFramework)' != ''">$(AndroidTargetFramework);$(MobileTargetFrameworks)</MobileTargetFrameworks>
 		<TargetFrameworks>$(MobileTargetFrameworks)</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
 		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
@@ -47,6 +50,19 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android' And '$(Configuration)' == 'Debug'">
+		<TrampBazaarApiBaseUrl Condition="'$(TrampBazaarApiBaseUrl)' == ''">http://10.0.2.2:5136/</TrampBazaarApiBaseUrl>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'android' And '$(Configuration)' == 'Debug'">
+		<TrampBazaarApiBaseUrl Condition="'$(TrampBazaarApiBaseUrl)' == ''">http://localhost:5136/</TrampBazaarApiBaseUrl>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<TrampBazaarApiBaseUrl Condition="'$(TrampBazaarApiBaseUrl)' == ''">https://api.example.com/</TrampBazaarApiBaseUrl>
+		<AndroidPackageFormat Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android' And '$(AndroidPackageFormat)' == ''">aab</AndroidPackageFormat>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
@@ -72,6 +88,13 @@
 
 	<ItemGroup>
 		<ProjectReference Include="trampbazaar.Shared\trampbazaar.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>TrampBazaarApiBaseUrl</_Parameter1>
+			<_Parameter2>$(TrampBazaarApiBaseUrl)</_Parameter2>
+		</AssemblyAttribute>
 	</ItemGroup>
 
 	<ItemGroup>

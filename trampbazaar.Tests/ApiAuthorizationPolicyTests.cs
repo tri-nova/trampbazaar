@@ -13,6 +13,8 @@ public sealed class ApiAuthorizationPolicyTests
     [InlineData("/api/listings", "GET", false)]
     [InlineData("/api/listings/123", "GET", false)]
     [InlineData("/api/account", "GET", true)]
+    [InlineData("/api/account/profile", "GET", true)]
+    [InlineData("/api/account/billing-address", "PUT", true)]
     [InlineData("/api/payments", "POST", true)]
     [InlineData("/api/notifications", "GET", true)]
     [InlineData("/api/listings", "POST", true)]

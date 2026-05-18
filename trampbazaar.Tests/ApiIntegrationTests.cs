@@ -53,6 +53,44 @@ public sealed class ApiIntegrationTests
     }
 
     [Fact]
+    public async Task Register_WithInvalidEmail_ReturnsBadRequest()
+    {
+        await using var factory = new ApiWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(ApiRoutes.AuthRegister, new RegisterRequestDto
+        {
+            FullName = "Demo Kullanici",
+            UserName = "demo_user",
+            Email = "gecersiz",
+            Password = "Password123!"
+        });
+        var payload = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Gecerli bir e-posta adresi girin", payload);
+    }
+
+    [Fact]
+    public async Task Register_WithShortPassword_ReturnsBadRequest()
+    {
+        await using var factory = new ApiWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(ApiRoutes.AuthRegister, new RegisterRequestDto
+        {
+            FullName = "Demo Kullanici",
+            UserName = "demo_user",
+            Email = "demo@example.com",
+            Password = "1234567"
+        });
+        var payload = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Sifre en az 8 karakter olmalidir", payload);
+    }
+
+    [Fact]
     public async Task StripeWebhook_WithoutValidSignature_ReturnsBadRequest_WithoutAuthentication()
     {
         await using var factory = new ApiWebApplicationFactory(useStripeSettings: true);
@@ -126,6 +164,79 @@ public sealed class ApiIntegrationTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Contains("Acik artirma alanlari zorunludur", payload);
+    }
+
+    [Fact]
+    public async Task UpdateAccountProfile_WithInvalidEmail_ReturnsValidationProblem()
+    {
+        await using var factory = new ApiWebApplicationFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", factory.CreateAccessToken("batu", "user", isAdmin: false));
+
+        using var response = await client.PutAsJsonAsync(ApiRoutes.AccountProfile, new UpdateUserAccountProfileRequest
+        {
+            FirstName = "Batu",
+            LastName = "Yildiz",
+            Email = "invalid"
+        });
+        var payload = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Gecerli bir e-posta adresi girin", payload);
+    }
+
+    [Fact]
+    public async Task UpdateBillingAddress_CorporateWithoutTaxInfo_ReturnsValidationProblem()
+    {
+        await using var factory = new ApiWebApplicationFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", factory.CreateAccessToken("batu", "user", isAdmin: false));
+
+        using var response = await client.PutAsJsonAsync(ApiRoutes.AccountBillingAddress, new UpsertUserBillingAddressRequest
+        {
+            InvoiceType = "corporate",
+            AddressTitle = "Merkez",
+            FullName = "Makparsan",
+            Country = "Turkiye",
+            City = "Ankara",
+            District = "Cankaya",
+            PhoneNumber = "05050000000",
+            AddressLine = "Test adres"
+        });
+        var payload = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Kurumsal fatura icin vergi dairesi ve vergi numarasi zorunludur", payload);
+    }
+
+    [Fact]
+    public async Task CreateAccountLedgerPayment_WithInvalidAmount_ReturnsValidationProblem()
+    {
+        await using var factory = new ApiWebApplicationFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", factory.CreateAccessToken("batu", "user", isAdmin: false));
+
+        using var response = await client.PostAsJsonAsync(ApiRoutes.AccountLedgerPayments, new CreateAccountLedgerPaymentRequest
+        {
+            Amount = 0,
+            Description = "Cari odeme"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddPriceAlert_WithInvalidTargetPrice_ReturnsValidationProblem()
+    {
+        await using var factory = new ApiWebApplicationFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", factory.CreateAccessToken("batu", "user", isAdmin: false));
+
+        using var response = await client.PostAsJsonAsync(ApiRoutes.AccountPriceAlerts, new AddPriceAlertRequest
+        {
+            ListingId = Guid.NewGuid(),
+            TargetPrice = 0
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]

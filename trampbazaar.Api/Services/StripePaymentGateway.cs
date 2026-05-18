@@ -64,6 +64,53 @@ public sealed class StripePaymentGateway : IPaymentGateway
         };
     }
 
+    public async Task<PaymentGatewayCheckoutSession> CreateCustomCheckoutAsync(GenericPaymentCheckoutRequest request, CancellationToken cancellationToken = default)
+    {
+        if (!IsEnabled)
+        {
+            throw new InvalidOperationException("Stripe odeme ayarlari eksik.");
+        }
+
+        StripeConfiguration.ApiKey = options.SecretKey;
+
+        var service = new SessionService();
+        var session = await service.CreateAsync(new SessionCreateOptions
+        {
+            Mode = "payment",
+            SuccessUrl = AppendPaymentId(request.SuccessUrl, request.PaymentId),
+            CancelUrl = AppendPaymentId(request.CancelUrl, request.PaymentId),
+            Metadata = new Dictionary<string, string>
+            {
+                ["paymentId"] = request.PaymentId.ToString(),
+                ["userName"] = request.UserName,
+                ["paymentType"] = request.PaymentType
+            },
+            LineItems =
+            [
+                new SessionLineItemOptions
+                {
+                    Quantity = 1,
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        Currency = request.CurrencyCode.Trim().ToLowerInvariant(),
+                        UnitAmount = Convert.ToInt64(decimal.Round(request.Amount * 100m, 0, MidpointRounding.AwayFromZero)),
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = request.ItemName,
+                            Description = request.Description
+                        }
+                    }
+                }
+            ]
+        }, cancellationToken: cancellationToken);
+
+        return new PaymentGatewayCheckoutSession
+        {
+            ProviderTransactionId = session.Id,
+            CheckoutUrl = session.Url ?? string.Empty
+        };
+    }
+
     public PaymentWebhookParseResult ParseWebhook(string payload, string? signatureHeader)
     {
         if (!IsEnabled)

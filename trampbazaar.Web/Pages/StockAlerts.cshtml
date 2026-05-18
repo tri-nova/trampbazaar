@@ -1,0 +1,35 @@
+@page
+@model trampbazaar.Web.Pages.StockAlertsModel
+@{
+    ViewData["Title"] = "Stok Alarm Listem";
+}
+
+<section class="page-header"><div><p class="eyebrow">Hesap Modulu</p><h1>Stok Alarm Listem</h1></div></section>
+<section class="detail-panel">
+    <form method="post" asp-page-handler="Add" class="stack-form">
+        <label>Ilan
+            <select asp-for="AlertForm.ListingId">
+                @foreach (var listing in Model.Listings)
+                {
+                    <option value="@listing.Id">@listing.Title</option>
+                }
+            </select>
+        </label>
+        <label>Not<input asp-for="AlertForm.Note" /></label>
+        <button type="submit" class="secondary-link button-like">Alarm Ekle</button>
+    </form>
+    <div class="payment-list" style="margin-top:20px;">
+    @foreach (var item in Model.Alerts)
+    {
+        <article class="detail-card payment-card">
+            <span>@item.SellerName</span>
+            <strong>@item.ListingTitle</strong>
+            <p>@item.Note</p>
+            <form method="post" asp-page-handler="Remove" asp-route-alertId="@item.Id">
+                <button type="submit" class="nav-button">Alarmi Kaldir</button>
+            </form>
+        </article>
+    }
+    </div>
+</section>
+

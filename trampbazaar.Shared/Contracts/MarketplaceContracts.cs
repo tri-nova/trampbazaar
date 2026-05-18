@@ -231,6 +231,187 @@ public sealed class UserAccountDashboardDto
     public IReadOnlyList<UserPaymentDto> RecentPayments { get; set; } = Array.Empty<UserPaymentDto>();
 }
 
+public sealed class UserBillingAddressDto
+{
+    public Guid Id { get; set; }
+    public string InvoiceType { get; set; } = "individual";
+    public string AddressTitle { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string IdentityNumber { get; set; } = string.Empty;
+    public string TaxOffice { get; set; } = string.Empty;
+    public string TaxNumber { get; set; } = string.Empty;
+    public string Country { get; set; } = "Turkiye";
+    public string City { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public string Neighborhood { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string AddressLine { get; set; } = string.Empty;
+    public bool IsDefault { get; set; } = true;
+}
+
+public sealed class UserAccountProfileDto
+{
+    public string UserName { get; set; } = string.Empty;
+    public string AccountType { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string MobilePhone { get; set; } = string.Empty;
+    public string WorkPhone { get; set; } = string.Empty;
+    public string NationalId { get; set; } = string.Empty;
+    public bool IsForeignCitizen { get; set; }
+    public DateTime? BirthDate { get; set; }
+    public string Gender { get; set; } = "unspecified";
+    public string AddressLine { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public bool EmailOptIn { get; set; }
+    public bool SmsOptIn { get; set; }
+    public bool PhoneOptIn { get; set; }
+    public UserBillingAddressDto BillingAddress { get; set; } = new();
+}
+
+public sealed class UpdateUserAccountProfileRequest
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string MobilePhone { get; set; } = string.Empty;
+    public string WorkPhone { get; set; } = string.Empty;
+    public string NationalId { get; set; } = string.Empty;
+    public bool IsForeignCitizen { get; set; }
+    public DateTime? BirthDate { get; set; }
+    public string Gender { get; set; } = "unspecified";
+    public string AddressLine { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public bool EmailOptIn { get; set; }
+    public bool SmsOptIn { get; set; }
+    public bool PhoneOptIn { get; set; }
+}
+
+public sealed class UpsertUserBillingAddressRequest
+{
+    public string InvoiceType { get; set; } = "individual";
+    public string AddressTitle { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string IdentityNumber { get; set; } = string.Empty;
+    public string TaxOffice { get; set; } = string.Empty;
+    public string TaxNumber { get; set; } = string.Empty;
+    public string Country { get; set; } = "Turkiye";
+    public string City { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public string Neighborhood { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string AddressLine { get; set; } = string.Empty;
+}
+
+public sealed class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public sealed class CustomerOrderDto
+{
+    public Guid Id { get; set; }
+    public string OrderNumber { get; set; } = string.Empty;
+    public string OrderStatus { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public int InstallmentCount { get; set; }
+    public int ItemCount { get; set; }
+    public DateTimeOffset OrderedAt { get; set; }
+    public DateTimeOffset? DeliveredAt { get; set; }
+    public string SummaryText { get; set; } = string.Empty;
+}
+
+public sealed class AccountLedgerEntryDto
+{
+    public Guid Id { get; set; }
+    public DateTimeOffset EntryDate { get; set; }
+    public string EntryType { get; set; } = string.Empty;
+    public string OrderNumber { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal DebitAmount { get; set; }
+    public decimal CreditAmount { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string ReceiptNumber { get; set; } = string.Empty;
+}
+
+public sealed class AccountLedgerSummaryDto
+{
+    public decimal CurrentBalance { get; set; }
+    public decimal TotalDebit { get; set; }
+    public decimal TotalCredit { get; set; }
+    public IReadOnlyList<AccountLedgerEntryDto> Entries { get; set; } = Array.Empty<AccountLedgerEntryDto>();
+}
+
+public sealed class FavoriteListingDto
+{
+    public Guid ListingId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string SaleMode { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public string SellerName { get; set; } = string.Empty;
+    public string ListingStatus { get; set; } = string.Empty;
+    public DateTimeOffset FavoritedAt { get; set; }
+}
+
+public sealed class StockAlertDto
+{
+    public Guid Id { get; set; }
+    public Guid ListingId { get; set; }
+    public string ListingTitle { get; set; } = string.Empty;
+    public string SellerName { get; set; } = string.Empty;
+    public string Note { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class PriceAlertDto
+{
+    public Guid Id { get; set; }
+    public Guid ListingId { get; set; }
+    public string ListingTitle { get; set; } = string.Empty;
+    public string SellerName { get; set; } = string.Empty;
+    public decimal TargetPrice { get; set; }
+    public decimal CurrentPrice { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class CreateAccountLedgerPaymentRequest
+{
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? SuccessUrl { get; set; }
+    public string? CancelUrl { get; set; }
+}
+
+public sealed class AddStockAlertRequest
+{
+    public Guid ListingId { get; set; }
+    public string Note { get; set; } = string.Empty;
+}
+
+public sealed class AddPriceAlertRequest
+{
+    public Guid ListingId { get; set; }
+    public decimal TargetPrice { get; set; }
+}
+
 public sealed class CreateComplaintRequest
 {
     public string UserName { get; set; } = string.Empty;

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using trampbazaar.Configuration;
+using trampbazaar.Infrastructure;
 using trampbazaar.Pages;
 using trampbazaar.Services;
 using trampbazaar.ViewModels;
